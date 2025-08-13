@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>肺癌早筛智能体v1.0</title>
+  <link rel="stylesheet" href="/static/style.css?v=1.1"/>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>🎤 肺癌早筛智能体v1.0</h1>
+
+    <div id="status">状态：未开始</div>
+    
+    <div class="controls">
+      <button id="btnStart">开始对话</button>
+      <button id="btnRec" disabled>开始录音</button>
+      <button id="btnStop" disabled>停止录音</button>
+      <button id="btnClear" class="secondary-btn">清空历史</button>
+      <button id="btnRestart" class="secondary-btn" style="display: none;">重新开始</button>
+      <button id="btnDebug" class="secondary-btn">🔍 调试智谱AI</button>
+    </div>
+
+    <div class="recording-indicator" id="recordingIndicator" style="display: none;">
+      <div class="recording-dot"></div>
+      <span>录音中...</span>
+      <div class="volume-visualizer" id="volumeVisualizer">
+        <div class="volume-bar"></div>
+        <div class="volume-bar"></div>
+        <div class="volume-bar"></div>
+        <div class="volume-bar"></div>
+        <div class="volume-bar"></div>
+      </div>
+    </div>
+
+    <div class="tts-indicator" id="ttsIndicator" style="display: none;">
+      <div class="tts-icon">🔊</div>
+      <span id="ttsStatus">正在播放问题语音...</span>
+    </div>
+
+    <div class="qa">
+      <div><b>问题：</b><span id="questionText">（等待开始）</span></div>
+      <div><b>我的回答：</b><span id="answerText">（等待录音）</span></div>
+    </div>
+
+    <div class="assessment-report" id="assessmentReport" style="display: none;">
+      <h3>📊 肺癌早筛评估报告</h3>
+      <div class="report-content" id="reportContent">
+        <div class="loading">正在生成评估报告...</div>
+      </div>
+      <div class="report-audio">
+        <h4>🔊 报告语音播报</h4>
+        <audio id="reportAudio" controls></audio>
+      </div>
+    </div>
+
+    <div class="conversation-history">
+      <h3>💬 对话历史</h3>
+      <div class="history-controls">
+        <button id="btnExpandHistory" class="secondary-btn">📖 展开历史</button>
+        <button id="btnCollapseHistory" class="secondary-btn" style="display: none;">📕 收起历史</button>
+      </div>
+      <div id="historyContainer" class="history-container collapsed">
+        <div id="historyList"></div>
+      </div>
+    </div>
+
+    <div class="audio-section">
+      <h3>🔊 AI语音回复</h3>
+      <audio id="ttsAudio" controls></audio>
+    </div>
+
+    <div class="debug-info">
+      <h3>🔍 调试信息</h3>
+      <div id="debugText">系统就绪，等待开始...</div>
+    </div>
+
+  </div>
+
+  <script src="/static/script.js?v=1.1"></script>
+</body>
+</html>
