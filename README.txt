@@ -24,10 +24,11 @@
 核心功能
 --------
 1. 智能问答：基于智谱AI的肺癌早筛问卷系统
-2. 语音交互：支持语音输入和AI语音回复
-3. 实时对话：多轮对话，智能风险评估
-4. 语音识别：将用户语音转换为文字
-5. 语音合成：将AI回复转换为语音
+2. 本地问卷：内置完整的肺癌早筛问卷，支持离线使用
+3. 语音交互：支持语音输入和AI语音回复
+4. 实时对话：多轮对话，智能风险评估
+5. 语音识别：将用户语音转换为文字
+6. 语音合成：将AI回复转换为语音
 
 技术特点
 --------
@@ -39,8 +40,11 @@
 
 API接口
 --------
-POST /api/agent/start      # 启动对话会话
-POST /api/agent/reply      # 提交用户回答
+POST /api/agent/start      # 启动智谱AI对话会话
+POST /api/agent/reply      # 提交智谱AI对话回答
+POST /api/local_questionnaire/start      # 启动本地问卷
+POST /api/local_questionnaire/reply      # 提交本地问卷回答
+GET  /api/local_questionnaire/status/<session_id>  # 获取本地问卷状态
 POST /api/asr              # 语音转文字
 GET  /api/health           # 健康检查
 GET  /api/questionnaire_status  # 获取问卷系统状态
@@ -74,9 +78,13 @@ XFYUN_APISECRET=YTRlMjU3MDAyOGIxM2FhNTA0OTFjYjM1
 使用方法
 --------
 1. 启动系统后访问 http://localhost:8080
-2. 点击"开始对话"按钮启动问卷
+2. 选择问卷模式：
+   - 点击"开始对话"按钮启动智谱AI智能对话
+   - 点击"本地问卷"按钮启动内置问卷
 3. 使用"开始录音"按钮进行语音回答
 4. 系统会自动识别语音并生成下一问题
+5. 本地问卷会显示问题分类和格式要求
+6. 问卷完成后自动生成风险评估报告
 
 
 

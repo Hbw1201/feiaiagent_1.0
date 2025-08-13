@@ -79,6 +79,22 @@ button:disabled {
   background: #5a6268;
 }
 
+.local-btn {
+  background: #28a745;
+}
+
+.local-btn:hover {
+  background: #218838;
+}
+
+.switch-btn {
+  background: #17a2b8;
+}
+
+.switch-btn:hover {
+  background: #138496;
+}
+
 .recording-indicator {
   display: flex;
   align-items: center;

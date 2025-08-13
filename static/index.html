@@ -15,6 +15,8 @@
     
     <div class="controls">
       <button id="btnStart">开始对话</button>
+      <button id="btnStartLocal" class="local-btn">📋 本地问卷</button>
+      <button id="btnSwitchToAgent" class="switch-btn">🤖 切换到智谱Agent</button>
       <button id="btnRec" disabled>开始录音</button>
       <button id="btnStop" disabled>停止录音</button>
       <button id="btnClear" class="secondary-btn">清空历史</button>
@@ -42,6 +44,12 @@
     <div class="qa">
       <div><b>问题：</b><span id="questionText">（等待开始）</span></div>
       <div><b>我的回答：</b><span id="answerText">（等待录音）</span></div>
+      <div id="questionInfo" style="display: none;">
+        <b>问题信息：</b><span id="questionInfoText"></span>
+      </div>
+      <div id="progressInfo" style="display: none;">
+        <b>进度：</b><span id="progressText"></span>
+      </div>
     </div>
 
     <div class="assessment-report" id="assessmentReport" style="display: none;">

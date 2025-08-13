@@ -6,6 +6,9 @@ let analyser = null;
 let microphone = null;
 let dataArray = null;
 let animationId = null;
+let isLocalQuestionnaire = false;
+let isAgentMode = false;
+let currentQuestionInfo = null;
 
 const statusEl = document.getElementById("status");
 const qEl = document.getElementById("questionText");
@@ -106,6 +109,16 @@ function clearHistory() {
   conversationHistory = [];
   updateHistoryDisplay();
   hideAssessmentReport();
+  
+  // 重置本地问卷状态
+  isLocalQuestionnaire = false;
+  isAgentMode = false;
+  currentQuestionInfo = null;
+  
+  // 隐藏问题信息和进度
+  document.getElementById("questionInfo").style.display = "none";
+  document.getElementById("progressInfo").style.display = "none";
+  
   log("对话历史已清空");
 }
 
@@ -114,6 +127,9 @@ function restartConversation() {
   
   // 重置状态
   sessionId = null;
+  isLocalQuestionnaire = false;
+  isAgentMode = false;
+  currentQuestionInfo = null;
   statusEl.textContent = "状态：未开始";
   statusEl.style.color = "#1976d2";
   statusEl.style.backgroundColor = "#e3f2fd";
@@ -126,8 +142,13 @@ function restartConversation() {
   // 重置回答显示
   aEl.textContent = "（等待录音）";
   
+  // 隐藏问题信息和进度
+  document.getElementById("questionInfo").style.display = "none";
+  document.getElementById("progressInfo").style.display = "none";
+  
   // 重置按钮状态
   document.getElementById("btnStart").disabled = false;
+  document.getElementById("btnStartLocal").disabled = false;
   document.getElementById("btnRec").disabled = true;
   document.getElementById("btnStop").disabled = true;
   
@@ -288,10 +309,15 @@ document.addEventListener("DOMContentLoaded", fetchSystemStatus);
 
 async function startConversation() {
   try {
-    log("开始启动对话...");
-    statusEl.textContent = "状态：正在启动对话...";
+    log("开始启动智谱AI对话...");
+    statusEl.textContent = "状态：正在启动智谱AI对话...";
     
     hideAssessmentReport();
+    isLocalQuestionnaire = false;
+    isAgentMode = true;
+    
+    // 更新按钮状态
+    updateButtonStates();
     
     sessionId = Date.now().toString();
     
@@ -315,7 +341,7 @@ async function startConversation() {
     
     addToHistory('question', question);
     
-    log(`对话启动成功，会话ID: ${sessionId}`);
+    log(`智谱AI对话启动成功，会话ID: ${sessionId}`);
     log(`获取到问题: ${question}`);
     
     // 播放TTS音频，将问题读出来给用户听
@@ -340,8 +366,157 @@ async function startConversation() {
     statusEl.textContent = "状态：已开始，等待你的回答";
     document.getElementById("btnRec").disabled = false;
   } catch (error) {
-    log(`启动对话失败: ${error.message}`);
+    log(`启动智谱AI对话失败: ${error.message}`);
     statusEl.textContent = "状态：启动失败，请重试";
+  }
+}
+
+async function startLocalQuestionnaire() {
+  try {
+    log("开始启动本地问卷...");
+    statusEl.textContent = "状态：正在启动本地问卷...";
+    
+    hideAssessmentReport();
+    isLocalQuestionnaire = true;
+    isAgentMode = false;
+    
+    // 更新按钮状态
+    updateButtonStates();
+    
+    sessionId = Date.now().toString();
+    
+    const res = await fetch("/api/local_questionnaire/start", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({session_id: sessionId})});
+    
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(data.error || `HTTP ${res.status}: ${res.statusText}`);
+    }
+    
+    const data = await res.json();
+    
+    if (data.error) {
+      throw new Error(data.error);
+    }
+    
+    sessionId = data.session_id;
+    const question = data.question || "(无)";
+    qEl.textContent = question;
+    audioEl.src = data.tts_url;
+    
+    // 显示问题信息和进度
+    if (data.question_info) {
+      currentQuestionInfo = data.question_info;
+      document.getElementById("questionInfo").style.display = "block";
+      document.getElementById("questionInfoText").textContent = `${currentQuestionInfo.category} - ${currentQuestionInfo.format}`;
+    }
+    
+    if (data.progress) {
+      document.getElementById("progressInfo").style.display = "block";
+      document.getElementById("progressText").textContent = data.progress;
+    }
+    
+    addToHistory('question', `[本地问卷] ${question}`);
+    
+    log(`本地问卷启动成功，会话ID: ${sessionId}`);
+    log(`获取到问题: ${question}`);
+    log(`问题分类: ${currentQuestionInfo?.category}, 格式要求: ${currentQuestionInfo?.format}`);
+    
+    // 播放TTS音频，将问题读出来给用户听
+    try {
+      showTTSIndicator("正在播放问题语音...");
+      await audioEl.play();
+      log("TTS播放开始 - 正在将问题读给用户听");
+      statusEl.textContent = "状态：正在播放问题语音...";
+      
+      // 监听音频播放结束事件
+      audioEl.onended = () => {
+        hideTTSIndicator();
+        statusEl.textContent = "状态：语音播放完成，等待回答";
+        log("TTS播放完成");
+      };
+    } catch (e) {
+      hideTTSIndicator();
+      log(`TTS播放失败: ${e.message}`);
+      statusEl.textContent = "状态：语音播放失败，但问题已显示";
+    }
+    
+    statusEl.textContent = "状态：本地问卷已开始，等待你的回答";
+    document.getElementById("btnRec").disabled = false;
+  } catch (error) {
+    log(`启动本地问卷失败: ${error.message}`);
+    statusEl.textContent = "状态：启动失败，请重试";
+  }
+}
+
+async function switchToAgent() {
+  try {
+    log("🤖 切换到智谱Agent模式...");
+    statusEl.textContent = "状态：正在切换到智谱Agent模式...";
+    
+    hideAssessmentReport();
+    isLocalQuestionnaire = false;
+    isAgentMode = true;
+    
+    // 更新按钮状态
+    updateButtonStates();
+    
+    // 隐藏本地问卷特有的显示元素
+    document.getElementById("questionInfo").style.display = "none";
+    document.getElementById("progressInfo").style.display = "none";
+    
+    // 重置状态
+    sessionId = null;
+    currentQuestionInfo = null;
+    
+    // 清空当前显示
+    qEl.textContent = "（等待开始）";
+    qEl.style.color = "#333";
+    qEl.style.fontWeight = "normal";
+    aEl.textContent = "（等待录音）";
+    audioEl.src = "";
+    
+    // 重置按钮状态
+    document.getElementById("btnRec").disabled = true;
+    document.getElementById("btnStop").disabled = true;
+    
+    // 清空对话历史
+    clearHistory();
+    
+    statusEl.textContent = "状态：已切换到智谱Agent模式，点击'开始对话'开始";
+    log("✅ 成功切换到智谱Agent模式");
+    
+  } catch (error) {
+    log(`切换到智谱Agent模式失败: ${error.message}`);
+    statusEl.textContent = "状态：切换失败，请重试";
+  }
+}
+
+function updateButtonStates() {
+  const btnStart = document.getElementById("btnStart");
+  const btnStartLocal = document.getElementById("btnStartLocal");
+  const btnSwitchToAgent = document.getElementById("btnSwitchToAgent");
+  
+  if (isLocalQuestionnaire) {
+    // 本地问卷模式
+    btnStart.disabled = true;
+    btnStartLocal.disabled = true;
+    btnSwitchToAgent.disabled = false;
+    btnSwitchToAgent.textContent = "🤖 切换到智谱Agent";
+    log("📋 当前模式：本地问卷");
+  } else if (isAgentMode) {
+    // 智谱Agent模式
+    btnStart.disabled = false;
+    btnStartLocal.disabled = false;
+    btnSwitchToAgent.disabled = true;
+    btnSwitchToAgent.textContent = "📋 切换到本地问卷";
+    log("🤖 当前模式：智谱Agent");
+  } else {
+    // 初始状态
+    btnStart.disabled = false;
+    btnStartLocal.disabled = false;
+    btnSwitchToAgent.disabled = false;
+    btnSwitchToAgent.textContent = "🤖 切换到智谱Agent";
+    log("🔄 当前模式：未选择");
   }
 }
 
@@ -352,18 +527,30 @@ async function submitAnswerText(text) {
     
     addToHistory('answer', text);
     
-    const res = await fetch("/api/agent/reply", {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({ session_id: sessionId, answer: text })
-    });
+    let res, data;
+    
+    if (isLocalQuestionnaire) {
+      // 本地问卷
+      res = await fetch("/api/local_questionnaire/reply", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ session_id: sessionId, answer: text })
+      });
+    } else {
+      // 智谱AI对话
+      res = await fetch("/api/agent/reply", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ session_id: sessionId, answer: text })
+      });
+    }
     
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));
       throw new Error(errorData.error || `HTTP ${res.status}: ${res.statusText}`);
     }
     
-    const data = await res.json();
+    data = await res.json();
     
     if (data.error) {
       throw new Error(data.error);
@@ -515,9 +702,83 @@ async function submitAnswerText(text) {
         return; // 不继续处理
       }
       
-      // 继续下一题
-      addToHistory('question', question);
-      log(`获取到下一题: "${question}"`);
+      if (isLocalQuestionnaire) {
+        // 本地问卷继续下一题
+        if (data.question_info) {
+          currentQuestionInfo = data.question_info;
+          document.getElementById("questionInfo").style.display = "block";
+          document.getElementById("questionInfoText").textContent = `${currentQuestionInfo.category} - ${currentQuestionInfo.format}`;
+        }
+        
+        if (data.progress) {
+          document.getElementById("progressInfo").style.display = "block";
+          document.getElementById("progressText").textContent = data.progress;
+        }
+        
+        addToHistory('question', `[本地问卷] ${question}`);
+        log(`本地问卷下一题: "${question}"`);
+        log(`问题分类: ${currentQuestionInfo?.category}, 格式要求: ${currentQuestionInfo?.format}`);
+      } else {
+        // 智谱AI对话处理
+        // 检查是否是API调用失败
+        if (question.includes("智谱AI暂时不可用") || question.includes("系统暂时不可用")) {
+          log("⚠️ 智谱AI调用失败，请稍后重试");
+          statusEl.textContent = "状态：智谱AI暂时不可用，请稍后重试";
+          statusEl.style.color = "#dc3545";
+          statusEl.style.backgroundColor = "#f8d7da";
+          
+          addToHistory('error', question);
+          qEl.style.color = "#dc3545";
+          
+          // 禁用录音按钮
+          document.getElementById("btnRec").disabled = true;
+          document.getElementById("btnStop").disabled = true;
+          
+          // 显示重新开始按钮
+          btnRestart.style.display = "inline-block";
+          
+          return; // 不继续处理
+        }
+        
+        // 检查是否是Agent流程错误（需要重新询问）
+        if (question.includes("Agent流程错误")) {
+          log("⚠️ 检测到Agent流程错误，正在重新询问问题...");
+          statusEl.textContent = "状态：正在重新询问问题...";
+          statusEl.style.color = "#ffc107";
+          statusEl.style.backgroundColor = "#fff3cd";
+          
+          addToHistory('warning', "刚才的问题出现了错误，正在重新询问...");
+          qEl.style.color = "#ffc107";
+          
+          // 保持录音按钮可用，用户可以重新回答
+          document.getElementById("btnRec").disabled = false;
+          document.getElementById("btnStop").disabled = true;
+          
+          // 播放TTS音频
+          try {
+            showTTSIndicator("正在播放重新询问的问题语音...");
+            await audioEl.play();
+            log("TTS播放开始 - 正在将重新询问的问题读给用户听");
+            statusEl.textContent = "状态：正在播放重新询问的问题语音...";
+            
+            audioEl.onended = () => {
+              hideTTSIndicator();
+              statusEl.textContent = "状态：语音播放完成，等待回答";
+              log("TTS播放完成");
+            };
+          } catch (e) {
+            hideTTSIndicator();
+            log(`重新询问问题TTS播放失败: ${e.message}`);
+            statusEl.textContent = "状态：语音播放失败，但问题已显示";
+          }
+          
+          return; // 不继续处理
+        }
+        
+        // 继续下一题
+        addToHistory('question', question);
+        log(`获取到下一题: "${question}"`);
+      }
       
       // 播放TTS音频，将新问题读出来给用户听
       try {
@@ -682,8 +943,26 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   updateHistoryDisplay();
+  
+  // 设置按钮事件监听器
+  document.getElementById("btnStart").addEventListener("click", startConversation);
+  document.getElementById("btnStartLocal").addEventListener("click", startLocalQuestionnaire);
+  document.getElementById("btnSwitchToAgent").addEventListener("click", switchToAgent);
+  document.getElementById("btnRec").addEventListener("click", startRecording);
+  document.getElementById("btnStop").addEventListener("click", stopRecording);
+  document.getElementById("btnClear").addEventListener("click", clearHistory);
+  document.getElementById("btnRestart").addEventListener("click", restartConversation);
+  document.getElementById("btnDebug").addEventListener("click", debugZhipu);
+  document.getElementById("btnExpandHistory").addEventListener("click", toggleHistory);
+  document.getElementById("btnCollapseHistory").addEventListener("click", toggleHistory);
+  
+  // 初始化按钮状态
+  updateButtonStates();
+  
+  // 显示当前模式状态
+  log("🎯 系统初始化完成");
+  log("📋 可用模式：本地问卷、智谱Agent");
+  log("💡 点击相应按钮选择模式");
+  
+  log("所有按钮事件监听器已设置完成");
 });
-
-document.getElementById("btnStart").onclick = startConversation;
-document.getElementById("btnRec").onclick = startRecording;
-document.getElementById("btnStop").onclick = stopRecording;
