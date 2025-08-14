@@ -126,13 +126,18 @@ def call_zhipu(app_id: str, api_key: str, prompt: str, conversation_id: str):
                             import re
                             # 匹配引号内的中文文本
                             chinese_texts = re.findall(r'[""]([^""]*[\u4e00-\u9fa5]+[^""]*)[""]', response_str)
-                            for text in chinese_texts:
+                            print(f"[DEBUG] 正则匹配到的中文文本数量: {len(chinese_texts)}")
+                            for i, text in enumerate(chinese_texts):
+                                print(f"[DEBUG] 中文文本{i+1}: {text[:100]}...")
                                 if len(text) > 20 and any(keyword in text for keyword in ["问题", "报告", "评估", "姓名", "年龄", "症状"]):
                                     extracted_text = text
                                     print(f"[DEBUG] 方式3提取到文本: {extracted_text[:100]}...")
                                     break
                         
                         if extracted_text:
+                            print(f"[DEBUG] ✅ 成功提取到文本内容")
+                            print(f"[DEBUG] 提取的文本长度: {len(extracted_text)}")
+                            print(f"[DEBUG] 提取的文本预览: {extracted_text[:200]}...")
                             return extracted_text, conversation_id
             
             print("[DEBUG] 未找到有效文本，尝试其他解析方式...")

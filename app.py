@@ -90,6 +90,22 @@ def agent_reply():
             len(ai_response) > 800  # 如果回复很长，可能是评估报告（提高阈值）
         )
         
+        # 添加详细的完成检测调试日志
+        logger.info(f"🔍 问卷完成检测调试信息:")
+        logger.info(f"  - ai_response长度: {len(ai_response)}")
+        logger.info(f"  - 包含'肺癌早筛风险评估报告': {'肺癌早筛风险评估报告' in ai_response}")
+        logger.info(f"  - 包含'Agent_结果': {'Agent_结果' in ai_response}")
+        logger.info(f"  - 包含'评估报告': {'评估报告' in ai_response}")
+        logger.info(f"  - 包含'风险评估': {'风险评估' in ai_response}")
+        logger.info(f"  - 包含'报告': {'报告' in ai_response}")
+        logger.info(f"  - 包含'问卷已完成': {'问卷已完成' in ai_response}")
+        logger.info(f"  - 包含'问卷完成': {'问卷完成' in ai_response}")
+        logger.info(f"  - 包含'所有问题': {'所有问题' in ai_response}")
+        logger.info(f"  - 包含'总结': {'总结' in ai_response}")
+        logger.info(f"  - 长度>800: {len(ai_response) > 800}")
+        logger.info(f"  - 最终判断is_completed: {is_completed}")
+        logger.info(f"  - ai_response内容预览: {ai_response[:200]}...")
+        
         # 首先检查是否是API调用失败
         if "未获取到有效回复" in ai_response or "java.lang.IllegalArgumentException" in ai_response or "Agent流程错误" in ai_response:
             logger.error(f"智谱AI调用失败或中断: {ai_response}")

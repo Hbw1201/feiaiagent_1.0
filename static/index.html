@@ -9,7 +9,7 @@
 </head>
 <body>
   <div class="container">
-    <h1>🎤 肺癌早筛智能体v1.0</h1>
+    <h1>肺癌早筛智能体v1.0</h1>
 
     <div id="status">状态：未开始</div>
     
@@ -82,6 +82,10 @@
     <div class="debug-info">
       <h3>🔍 调试信息</h3>
       <div id="debugText">系统就绪，等待开始...</div>
+      <div style="margin-top: 15px;">
+        <button id="btnTestReport" class="secondary-btn" onclick="testAssessmentReport()">🧪 测试评估报告显示</button>
+        <button id="btnTestComplete" class="secondary-btn" onclick="testCompleteStatus()">🧪 测试完成状态</button>
+      </div>
     </div>
 
   </div>

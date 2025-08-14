@@ -536,6 +536,12 @@ async function submitAnswerText(text) {
       throw new Error(data.error);
     }
     
+    // 添加调试日志
+    log(`🔍 调试信息：`);
+    log(`  - is_complete: ${data.is_complete}`);
+    log(`  - question长度: ${data.question ? data.question.length : 0}`);
+    log(`  - question内容预览: ${data.question ? data.question.substring(0, 100) + '...' : '无'}`);
+    
     sessionId = data.session_id;
     const question = data.question || "(无)";
     qEl.textContent = question;
@@ -543,6 +549,7 @@ async function submitAnswerText(text) {
     
     if (data.is_complete) {
       log("🎉 问卷已完成！");
+      log(`✅ 后端返回is_complete=True，开始显示评估报告`);
       statusEl.textContent = "状态：问卷已完成，显示总结报告";
       
       addToHistory('summary', question);
@@ -553,6 +560,7 @@ async function submitAnswerText(text) {
       document.getElementById("btnRec").disabled = true;
       document.getElementById("btnStop").disabled = true;
       
+      log(`📊 调用showAssessmentReport()显示评估报告区域`);
       showAssessmentReport();
       
       // 检查是否是评估报告（多种关键词匹配）
@@ -562,16 +570,27 @@ async function submitAnswerText(text) {
                       question.includes("报告") ||
                       question.length > 500;  // 长文本可能是报告
       
+      log(`🔍 报告检测结果：`);
+      log(`  - 包含"肺癌早筛风险评估报告": ${question.includes("肺癌早筛风险评估报告")}`);
+      log(`  - 包含"评估报告": ${question.includes("评估报告")}`);
+      log(`  - 包含"风险评估": ${question.includes("风险评估")}`);
+      log(`  - 包含"报告": ${question.includes("报告")}`);
+      log(`  - 文本长度>500: ${question.length > 500}`);
+      log(`  - 最终判断: ${isReport ? '是评估报告' : '不是评估报告'}`);
+      
       if (isReport) {
         // 尝试解析为Markdown格式
         let reportHtml;
         try {
           reportHtml = marked.parse(question);
+          log(`✅ Markdown解析成功`);
         } catch (e) {
           // 如果Markdown解析失败，直接显示文本
           reportHtml = question.replace(/\n/g, '<br>');
+          log(`⚠️ Markdown解析失败，使用HTML换行: ${e.message}`);
         }
         
+        log(`📝 设置报告内容到reportContentEl`);
         reportContentEl.innerHTML = `<div class="report-text markdown-content">${reportHtml}</div>`;
         log("检测到评估报告，直接显示内容");
         log(`报告内容长度: ${question.length}`);
@@ -606,6 +625,7 @@ async function submitAnswerText(text) {
         }
       } else {
         // 虽然不是明确的评估报告，但可能是其他形式的完成结果
+        log(`📝 设置完成结果内容到reportContentEl（非标准报告格式）`);
         reportContentEl.innerHTML = `
           <div class="info-message">
             <h4>问卷已完成</h4>
@@ -645,6 +665,7 @@ async function submitAnswerText(text) {
         }
       }
     } else {
+      log(`⏳ 问卷未完成，继续下一题`);
       // 检查是否是API调用失败
       if (question.includes("智谱AI暂时不可用") || question.includes("系统暂时不可用")) {
         log("⚠️ 智谱AI调用失败，请稍后重试");
@@ -709,7 +730,7 @@ async function submitAnswerText(text) {
         
         if (data.progress) {
           document.getElementById("progressInfo").style.display = "block";
-          document.getElementById("progressText").textContent = data.progress;
+          document.getElementById("progressInfo").textContent = data.progress;
         }
         
         addToHistory('question', `[本地问卷] ${question}`);
@@ -949,11 +970,11 @@ async function startRecording() {
         if (!window.volumeLogCounter) window.volumeLogCounter = 0;
         window.volumeLogCounter++;
         if (window.volumeLogCounter % 100 === 0) {
-          log(`🔊 当前音量: ${currentVolume.toFixed(2)}, 静音阈值: 10, 静音计时: ${silenceStartTime ? ((Date.now() - silenceStartTime) / 1000).toFixed(1) + 's' : '未开始'}`);
+          log(`🔊 当前音量: ${currentVolume.toFixed(2)}, 静音阈值: 20, 静音计时: ${silenceStartTime ? ((Date.now() - silenceStartTime) / 1000).toFixed(1) + 's' : '未开始'}`);
         }
         
         // 如果音量很低（静音）
-        if (currentVolume < 10) {
+        if (currentVolume < 20) {
           if (silenceStartTime === null) {
             silenceStartTime = Date.now();
             log("🔇 检测到静音开始，开始计时...");
@@ -1053,5 +1074,103 @@ document.addEventListener('DOMContentLoaded', function() {
   
   log("所有按钮事件监听器已设置完成");
 });
+
+// 测试函数：测试评估报告显示
+function testAssessmentReport() {
+  log("🧪 开始测试评估报告显示功能");
+  
+  // 测试1：检查DOM元素是否存在
+  log(`📋 DOM元素检查:`);
+  log(`  - assessmentReportEl: ${assessmentReportEl ? '存在' : '不存在'}`);
+  log(`  - reportContentEl: ${reportContentEl ? '存在' : '不存在'}`);
+  log(`  - reportAudioEl: ${reportAudioEl ? '存在' : '不存在'}`);
+  
+  // 测试2：检查当前显示状态
+  if (assessmentReportEl) {
+    const currentDisplay = assessmentReportEl.style.display;
+    log(`  - 当前评估报告显示状态: ${currentDisplay}`);
+    log(`  - 当前评估报告可见性: ${assessmentReportEl.offsetParent !== null ? '可见' : '不可见'}`);
+  }
+  
+  // 测试3：测试显示/隐藏功能
+  log(`🔄 测试显示/隐藏功能`);
+  showAssessmentReport();
+  log(`✅ 调用showAssessmentReport()完成`);
+  
+  // 测试4：设置测试内容
+  if (reportContentEl) {
+    const testContent = `
+      <div class="report-text markdown-content">
+        <h1>🧪 测试评估报告</h1>
+        <p>这是一个测试报告，用于验证评估报告显示功能是否正常工作。</p>
+        <h2>测试内容</h2>
+        <ul>
+          <li>✅ 报告区域显示</li>
+          <li>✅ 内容渲染</li>
+          <li>✅ 样式应用</li>
+        </ul>
+        <p><strong>如果能看到这个测试报告，说明显示功能正常！</strong></p>
+      </div>
+    `;
+    reportContentEl.innerHTML = testContent;
+    log(`📝 设置测试内容完成`);
+  }
+  
+  // 测试5：检查最终状态
+  setTimeout(() => {
+    if (assessmentReportEl) {
+      const finalDisplay = assessmentReportEl.style.display;
+      log(`📊 最终状态检查:`);
+      log(`  - 显示状态: ${finalDisplay}`);
+      log(`  - 可见性: ${assessmentReportEl.offsetParent !== null ? '可见' : '不可见'}`);
+      log(`  - 内容长度: ${reportContentEl ? reportContentEl.innerHTML.length : 0}`);
+    }
+    log(`🧪 测试完成`);
+  }, 100);
+}
+
+// 测试函数：测试完成状态
+function testCompleteStatus() {
+  log("🧪 开始测试完成状态功能");
+  
+  // 模拟一个完整的响应数据
+  const mockCompleteData = {
+    session_id: "test_session_" + Date.now(),
+    question: "肺癌早筛风险评估报告\n\n【基本信息】\n姓名：测试用户\n性别：男\n年龄：35岁\n\n【风险评估】\n🟡 中风险：建议定期体检，关注症状变化\n\n【建议措施】\n1. 戒烟限酒，避免二手烟\n2. 保持室内通风，减少油烟接触\n3. 定期体检，关注肺部健康",
+    tts_url: "/static/tts/test.wav",
+    is_complete: true
+  };
+  
+  log(`📋 模拟数据:`);
+  log(`  - is_complete: ${mockCompleteData.is_complete}`);
+  log(`  - question长度: ${mockCompleteData.question.length}`);
+  log(`  - question内容预览: ${mockCompleteData.question.substring(0, 100)}...`);
+  
+  // 模拟处理完成状态
+  log(`🔄 模拟处理完成状态...`);
+  
+  // 设置问题文本
+  qEl.textContent = mockCompleteData.question;
+  qEl.style.color = "#28a745";
+  qEl.style.fontWeight = "bold";
+  
+  // 显示评估报告
+  showAssessmentReport();
+  
+  // 设置报告内容
+  if (reportContentEl) {
+    const reportHtml = marked.parse(mockCompleteData.question);
+    reportContentEl.innerHTML = `<div class="report-text markdown-content">${reportHtml}</div>`;
+    log(`📝 设置模拟报告内容完成`);
+  }
+  
+  // 更新状态
+  statusEl.textContent = "状态：测试完成状态 - 问卷已完成，显示总结报告";
+  statusEl.style.color = "#28a745";
+  statusEl.style.backgroundColor = "#d4edda";
+  
+  log(`✅ 模拟完成状态处理完成`);
+  log(`🧪 测试完成`);
+}
 
 
