@@ -26,9 +26,7 @@ const historyList = document.getElementById("historyList");
 const historyContainer = document.getElementById("historyContainer");
 const btnExpandHistory = document.getElementById("btnExpandHistory");
 const btnCollapseHistory = document.getElementById("btnCollapseHistory");
-const btnClear = document.getElementById("btnClear");
 const btnRestart = document.getElementById("btnRestart");
-const btnDebug = document.getElementById("btnDebug");
 const ttsIndicator = document.getElementById("ttsIndicator");
 const ttsStatus = document.getElementById("ttsStatus");
 
@@ -105,22 +103,7 @@ function updateHistoryDisplay() {
   }
 }
 
-function clearHistory() {
-  conversationHistory = [];
-  updateHistoryDisplay();
-  hideAssessmentReport();
-  
-  // 重置本地问卷状态
-  isLocalQuestionnaire = false;
-  isAgentMode = false;
-  currentQuestionInfo = null;
-  
-  // 隐藏问题信息和进度
-  document.getElementById("questionInfo").style.display = "none";
-  document.getElementById("progressInfo").style.display = "none";
-  
-  log("对话历史已清空");
-}
+
 
 function restartConversation() {
   log("🔄 重新开始对话");
@@ -146,11 +129,10 @@ function restartConversation() {
   document.getElementById("questionInfo").style.display = "none";
   document.getElementById("progressInfo").style.display = "none";
   
-  // 重置按钮状态
-  document.getElementById("btnStart").disabled = false;
-  document.getElementById("btnStartLocal").disabled = false;
-  document.getElementById("btnRec").disabled = true;
-  document.getElementById("btnStop").disabled = true;
+      // 重置按钮状态
+    document.getElementById("btnStart").disabled = false;
+    document.getElementById("btnStartLocal").disabled = false;
+    // 录音按钮现在是自动的，不需要手动设置
   
   // 隐藏重新开始按钮
   btnRestart.style.display = "none";
@@ -162,57 +144,23 @@ function restartConversation() {
   audioEl.src = "";
   
   // 清空对话历史
-  clearHistory();
+  conversationHistory = [];
+  updateHistoryDisplay();
+  hideAssessmentReport();
+  
+  // 重置本地问卷状态
+  isLocalQuestionnaire = false;
+  isAgentMode = false;
+  currentQuestionInfo = null;
+  
+  // 隐藏问题信息和进度
+  document.getElementById("questionInfo").style.display = "none";
+  document.getElementById("progressInfo").style.display = "none";
   
   log("对话已重置，可以重新开始");
 }
 
-async function debugZhipu() {
-  try {
-    log("🔍 开始调试智谱AI连接...");
-    statusEl.textContent = "状态：正在调试智谱AI连接...";
-    
-    const response = await fetch('/api/debug/zhipu', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        prompt: "请简单回复：测试成功"
-      })
-    });
-    
-    const data = await response.json();
-    
-    if (data.success) {
-      log(`✅ 智谱AI连接测试成功`);
-      log(`   响应: ${data.response}`);
-      log(`   会话ID: ${data.conversation_id}`);
-      log(`   响应长度: ${data.response_length}`);
-      log(`   是否有错误: ${data.has_error}`);
-      
-      if (data.has_error) {
-        statusEl.textContent = "状态：智谱AI连接成功但返回错误";
-        statusEl.style.color = "#ffc107";
-        statusEl.style.backgroundColor = "#fff3cd";
-      } else {
-        statusEl.textContent = "状态：智谱AI连接完全正常";
-        statusEl.style.color = "#28a745";
-        statusEl.style.backgroundColor = "#d4edda";
-      }
-    } else {
-      log(`❌ 智谱AI连接测试失败: ${data.error}`);
-      statusEl.textContent = "状态：智谱AI连接失败";
-      statusEl.style.color = "#dc3545";
-      statusEl.style.backgroundColor = "#f8d7da";
-    }
-  } catch (error) {
-    log(`💥 调试过程中出错: ${error.message}`);
-    statusEl.textContent = "状态：调试过程出错";
-    statusEl.style.color = "#dc3545";
-    statusEl.style.backgroundColor = "#f8d7da";
-  }
-}
+
 
 function toggleHistory() {
   const isCollapsed = historyContainer.classList.contains('collapsed');
@@ -230,9 +178,7 @@ function toggleHistory() {
 
 btnExpandHistory.addEventListener("click", toggleHistory);
 btnCollapseHistory.addEventListener("click", toggleHistory);
-  btnClear.addEventListener("click", clearHistory);
   btnRestart.addEventListener("click", restartConversation);
-  btnDebug.addEventListener("click", debugZhipu);
 
 function updateVolumeVisualizer(volume) {
   const bars = volumeVisualizer.querySelectorAll('.volume-bar');
@@ -281,6 +227,13 @@ function stopVolumeVisualization() {
   if (animationId) {
     cancelAnimationFrame(animationId);
     animationId = null;
+  }
+  
+  // 停止静音检测
+  if (window.silenceTimer) {
+    cancelAnimationFrame(window.silenceTimer);
+    window.silenceTimer = null;
+    log("静音检测已停止");
   }
   
   if (audioContext) {
@@ -344,27 +297,36 @@ async function startConversation() {
     log(`智谱AI对话启动成功，会话ID: ${sessionId}`);
     log(`获取到问题: ${question}`);
     
-    // 播放TTS音频，将问题读出来给用户听
+        // 播放TTS音频
     try {
       showTTSIndicator("正在播放问题语音...");
-      await audioEl.play();
       log("TTS播放开始 - 正在将问题读给用户听");
       statusEl.textContent = "状态：正在播放问题语音...";
       
-      // 监听音频播放结束事件
+      // 播放TTS音频
+      await audioEl.play();
+      
+      // TTS播放完成后自动开始录音
       audioEl.onended = () => {
         hideTTSIndicator();
-        statusEl.textContent = "状态：语音播放完成，等待回答";
-        log("TTS播放完成");
+        statusEl.textContent = "状态：语音播放完成，自动开始录音...";
+        log("TTS播放完成，自动开始录音");
+
+        // 自动开始录音
+        setTimeout(() => {
+          if (isAgentMode) { // 确保智谱AI对话已开始
+            startRecording();
+          }
+        }, 500); // 延迟500ms开始录音，给用户准备时间
       };
     } catch (e) {
       hideTTSIndicator();
       log(`TTS播放失败: ${e.message}`);
-      statusEl.textContent = "状态：语音播放失败，但问题已显示";
+      statusEl.textContent = "状态：TTS播放失败，但问题已显示";
     }
     
     statusEl.textContent = "状态：已开始，等待你的回答";
-    document.getElementById("btnRec").disabled = false;
+    // 录音按钮现在是自动的，不需要手动启用
   } catch (error) {
     log(`启动智谱AI对话失败: ${error.message}`);
     statusEl.textContent = "状态：启动失败，请重试";
@@ -421,27 +383,36 @@ async function startLocalQuestionnaire() {
     log(`获取到问题: ${question}`);
     log(`问题分类: ${currentQuestionInfo?.category}, 格式要求: ${currentQuestionInfo?.format}`);
     
-    // 播放TTS音频，将问题读出来给用户听
+        // 播放TTS音频
     try {
       showTTSIndicator("正在播放问题语音...");
-      await audioEl.play();
       log("TTS播放开始 - 正在将问题读给用户听");
       statusEl.textContent = "状态：正在播放问题语音...";
       
-      // 监听音频播放结束事件
+      // 播放TTS音频
+      await audioEl.play();
+      
+      // TTS播放完成后自动开始录音
       audioEl.onended = () => {
         hideTTSIndicator();
-        statusEl.textContent = "状态：语音播放完成，等待回答";
-        log("TTS播放完成");
+        statusEl.textContent = "状态：语音播放完成，自动开始录音...";
+        log("TTS播放完成，自动开始录音");
+
+        // 自动开始录音
+        setTimeout(() => {
+          if (isLocalQuestionnaire) { // 确保本地问卷已开始
+            startRecording();
+          }
+        }, 500); // 延迟500ms开始录音，给用户准备时间
       };
     } catch (e) {
       hideTTSIndicator();
       log(`TTS播放失败: ${e.message}`);
-      statusEl.textContent = "状态：语音播放失败，但问题已显示";
+      statusEl.textContent = "状态：TTS播放失败，但问题已显示";
     }
     
     statusEl.textContent = "状态：本地问卷已开始，等待你的回答";
-    document.getElementById("btnRec").disabled = false;
+    // 录音按钮现在是自动的，不需要手动启用
   } catch (error) {
     log(`启动本地问卷失败: ${error.message}`);
     statusEl.textContent = "状态：启动失败，请重试";
@@ -475,12 +446,21 @@ async function switchToAgent() {
     aEl.textContent = "（等待录音）";
     audioEl.src = "";
     
-    // 重置按钮状态
-    document.getElementById("btnRec").disabled = true;
-    document.getElementById("btnStop").disabled = true;
+    // 录音按钮现在是自动的，不需要手动设置
     
     // 清空对话历史
-    clearHistory();
+    conversationHistory = [];
+    updateHistoryDisplay();
+    hideAssessmentReport();
+    
+    // 重置本地问卷状态
+    isLocalQuestionnaire = false;
+    isAgentMode = false;
+    currentQuestionInfo = null;
+    
+    // 隐藏问题信息和进度
+    document.getElementById("questionInfo").style.display = "none";
+    document.getElementById("progressInfo").style.display = "none";
     
     statusEl.textContent = "状态：已切换到智谱Agent模式，点击'开始对话'开始";
     log("✅ 成功切换到智谱Agent模式");
@@ -597,23 +577,32 @@ async function submitAnswerText(text) {
         log(`报告内容长度: ${question.length}`);
         log(`报告类型: ${isReport ? '评估报告' : '普通回复'}`);
         
-        // 播放评估报告的TTS音频，将报告内容读给用户听
+        // 播放评估报告TTS音频
         try {
           showTTSIndicator("正在播放评估报告语音...");
-          await audioEl.play();
           log("TTS播放开始 - 正在将评估报告读给用户听");
           statusEl.textContent = "状态：正在播放评估报告语音...";
           
-          // 监听音频播放结束事件
+          // 播放TTS音频
+          await audioEl.play();
+          
+          // TTS播放完成后自动开始录音
           audioEl.onended = () => {
             hideTTSIndicator();
-            statusEl.textContent = "状态：语音播放完成，等待回答";
-            log("TTS播放完成");
+            statusEl.textContent = "状态：语音播放完成，自动开始录音...";
+            log("TTS播放完成，自动开始录音");
+            
+            // 自动开始录音
+            setTimeout(() => {
+              if (isAgentMode) { // 确保智谱AI对话已开始
+                startRecording();
+              }
+            }, 500); // 延迟500ms开始录音，给用户准备时间
           };
         } catch (e) {
           hideTTSIndicator();
-          log(`评估报告TTS播放失败: ${e.message}`);
-          statusEl.textContent = "状态：语音播放失败，但报告已显示";
+          log(`TTS播放失败: ${e.message}`);
+          statusEl.textContent = "状态：TTS播放失败，但报告已显示";
         }
       } else {
         // 虽然不是明确的评估报告，但可能是其他形式的完成结果
@@ -627,23 +616,32 @@ async function submitAnswerText(text) {
         log("问卷已完成，显示完成结果内容");
         log(`完成结果长度: ${question.length}`);
         
-        // 播放问卷完成结果的TTS音频
+        // 播放问卷完成结果TTS音频
         try {
           showTTSIndicator("正在播放完成结果语音...");
-          await audioEl.play();
           log("TTS播放开始 - 正在将完成结果读给用户听");
           statusEl.textContent = "状态：正在播放完成结果语音...";
           
-          // 监听音频播放结束事件
+          // 播放TTS音频
+          await audioEl.play();
+          
+          // TTS播放完成后自动开始录音
           audioEl.onended = () => {
             hideTTSIndicator();
-            statusEl.textContent = "状态：语音播放完成，等待回答";
-            log("TTS播放完成");
+            statusEl.textContent = "状态：语音播放完成，自动开始录音...";
+            log("TTS播放完成，自动开始录音");
+            
+            // 自动开始录音
+            setTimeout(() => {
+              if (isAgentMode) { // 确保智谱AI对话已开始
+                startRecording();
+              }
+            }, 500); // 延迟500ms开始录音，给用户准备时间
           };
         } catch (e) {
           hideTTSIndicator();
-          log(`完成结果TTS播放失败: ${e.message}`);
-          statusEl.textContent = "状态：语音播放失败，但结果已显示";
+          log(`TTS播放失败: ${e.message}`);
+          statusEl.textContent = "状态：TTS播放失败，但结果已显示";
         }
       }
     } else {
@@ -657,9 +655,7 @@ async function submitAnswerText(text) {
         addToHistory('error', question);
         qEl.style.color = "#dc3545";
         
-        // 禁用录音按钮
-        document.getElementById("btnRec").disabled = true;
-        document.getElementById("btnStop").disabled = true;
+        // 录音按钮现在是自动的，不需要手动禁用
         
         // 显示重新开始按钮
         btnRestart.style.display = "inline-block";
@@ -677,17 +673,18 @@ async function submitAnswerText(text) {
         addToHistory('warning', "刚才的问题出现了错误，正在重新询问...");
         qEl.style.color = "#ffc107";
         
-        // 保持录音按钮可用，用户可以重新回答
-        document.getElementById("btnRec").disabled = false;
-        document.getElementById("btnStop").disabled = true;
+        // 录音按钮现在是自动的，不需要手动设置
         
-        // 播放TTS音频
+        // 播放重新询问问题的TTS音频
         try {
-          showTTSIndicator("正在播放重新询问的问题语音...");
-          await audioEl.play();
+          showTTSIndicator("正在播放重新询问问题语音...");
           log("TTS播放开始 - 正在将重新询问的问题读给用户听");
-          statusEl.textContent = "状态：正在播放重新询问的问题语音...";
+          statusEl.textContent = "状态：正在播放重新询问问题语音...";
           
+          // 播放TTS音频
+          await audioEl.play();
+          
+          // TTS播放完成后
           audioEl.onended = () => {
             hideTTSIndicator();
             statusEl.textContent = "状态：语音播放完成，等待回答";
@@ -695,8 +692,8 @@ async function submitAnswerText(text) {
           };
         } catch (e) {
           hideTTSIndicator();
-          log(`重新询问问题TTS播放失败: ${e.message}`);
-          statusEl.textContent = "状态：语音播放失败，但问题已显示";
+          log(`TTS播放失败: ${e.message}`);
+          statusEl.textContent = "状态：TTS播放失败，但问题已显示";
         }
         
         return; // 不继续处理
@@ -750,26 +747,34 @@ async function submitAnswerText(text) {
           addToHistory('warning', "刚才的问题出现了错误，正在重新询问...");
           qEl.style.color = "#ffc107";
           
-          // 保持录音按钮可用，用户可以重新回答
-          document.getElementById("btnRec").disabled = false;
-          document.getElementById("btnStop").disabled = true;
+                  // 录音按钮现在是自动的，不需要手动设置
           
-          // 播放TTS音频
+          // 播放重新询问问题的TTS音频
           try {
-            showTTSIndicator("正在播放重新询问的问题语音...");
-            await audioEl.play();
+            showTTSIndicator("正在播放重新询问问题语音...");
             log("TTS播放开始 - 正在将重新询问的问题读给用户听");
-            statusEl.textContent = "状态：正在播放重新询问的问题语音...";
+            statusEl.textContent = "状态：正在播放重新询问问题语音...";
             
+            // 播放TTS音频
+            await audioEl.play();
+            
+            // TTS播放完成后自动开始录音
             audioEl.onended = () => {
               hideTTSIndicator();
-              statusEl.textContent = "状态：语音播放完成，等待回答";
-              log("TTS播放完成");
+              statusEl.textContent = "状态：语音播放完成，自动开始录音...";
+              log("TTS播放完成，自动开始录音");
+              
+              // 自动开始录音
+              setTimeout(() => {
+                if (isAgentMode || isLocalQuestionnaire) { // 确保对话已开始
+                  startRecording();
+                }
+              }, 500); // 延迟500ms开始录音，给用户准备时间
             };
           } catch (e) {
             hideTTSIndicator();
-            log(`重新询问问题TTS播放失败: ${e.message}`);
-            statusEl.textContent = "状态：语音播放失败，但问题已显示";
+            log(`TTS播放失败: ${e.message}`);
+            statusEl.textContent = "状态：TTS播放失败，但问题已显示";
           }
           
           return; // 不继续处理
@@ -780,23 +785,32 @@ async function submitAnswerText(text) {
         log(`获取到下一题: "${question}"`);
       }
       
-      // 播放TTS音频，将新问题读出来给用户听
+      // 播放新问题的TTS音频
       try {
-        showTTSIndicator("正在播放问题语音...");
-        await audioEl.play();
+        showTTSIndicator("正在播放新问题语音...");
         log("TTS播放开始 - 正在将新问题读给用户听");
-        statusEl.textContent = "状态：正在播放问题语音...";
+        statusEl.textContent = "状态：正在播放新问题语音...";
         
-        // 监听音频播放结束事件
+        // 播放TTS音频
+        await audioEl.play();
+        
+        // TTS播放完成后自动开始录音
         audioEl.onended = () => {
           hideTTSIndicator();
-          statusEl.textContent = "状态：语音播放完成，等待回答";
-          log("TTS播放完成");
+          statusEl.textContent = "状态：语音播放完成，自动开始录音...";
+          log("TTS播放完成，自动开始录音");
+          
+          // 自动开始录音
+          setTimeout(() => {
+            if (isAgentMode || isLocalQuestionnaire) { // 确保对话已开始
+              startRecording();
+            }
+          }, 500); // 延迟500ms开始录音，给用户准备时间
         };
       } catch (e) {
         hideTTSIndicator();
         log(`TTS播放失败: ${e.message}`);
-        statusEl.textContent = "状态：语音播放失败，但问题已显示";
+        statusEl.textContent = "状态：TTS播放失败，但问题已显示";
       }
       
       statusEl.textContent = "状态：已获取下一题";
@@ -867,6 +881,13 @@ async function startRecording() {
     mediaRecorder.onstop = async () => {
       recordingIndicator.style.display = 'none';
       
+      // 停止静音检测
+      if (window.silenceTimer) {
+        cancelAnimationFrame(window.silenceTimer);
+        window.silenceTimer = null;
+        log("静音检测已停止");
+      }
+      
       stopVolumeVisualization();
       
       const mimeType = mediaRecorder.mimeType || 'audio/speex';
@@ -905,10 +926,66 @@ async function startRecording() {
     mediaRecorder.start();
     statusEl.textContent = "状态：录音中…";
     statusEl.classList.add("recording");
-    document.getElementById("btnRec").disabled = true;
-    document.getElementById("btnStop").disabled = false;
     
-    log("录音开始");
+    // 隐藏录音按钮（现在是自动录音）
+    document.getElementById("btnRec").style.display = 'none';
+    document.getElementById("btnStop").style.display = 'none';
+    
+    // 启动6秒无声音自动停止录音的定时器
+    let lastVolume = 0;
+    let silenceStartTime = null;
+    
+    // 音量检测函数
+    const checkSilence = () => {
+      if (analyser && dataArray) {
+        analyser.getByteFrequencyData(dataArray);
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) {
+          sum += dataArray[i];
+        }
+        const currentVolume = sum / dataArray.length;
+        
+        // 每100次检测输出一次音量信息（避免日志过多）
+        if (!window.volumeLogCounter) window.volumeLogCounter = 0;
+        window.volumeLogCounter++;
+        if (window.volumeLogCounter % 100 === 0) {
+          log(`🔊 当前音量: ${currentVolume.toFixed(2)}, 静音阈值: 10, 静音计时: ${silenceStartTime ? ((Date.now() - silenceStartTime) / 1000).toFixed(1) + 's' : '未开始'}`);
+        }
+        
+        // 如果音量很低（静音）
+        if (currentVolume < 10) {
+          if (silenceStartTime === null) {
+            silenceStartTime = Date.now();
+            log("🔇 检测到静音开始，开始计时...");
+          } else {
+            const silenceDuration = Date.now() - silenceStartTime;
+            if (silenceDuration > 6000) { // 6秒静音
+              log(`⏰ 检测到${(silenceDuration / 1000).toFixed(1)}秒静音，自动停止录音`);
+              stopRecording();
+              return;
+            }
+          }
+        } else {
+          // 有声音，重置静音计时
+          if (silenceStartTime !== null) {
+            log(`🔊 检测到声音(${currentVolume.toFixed(2)})，重置静音计时`);
+            silenceStartTime = null;
+          }
+        }
+        
+        lastVolume = currentVolume;
+      } else {
+        log("⚠️ 音频分析器未就绪，无法检测音量");
+      }
+      
+      // 继续检测
+      window.silenceTimer = requestAnimationFrame(checkSilence);
+    };
+    
+    // 开始音量检测
+    window.silenceTimer = requestAnimationFrame(checkSilence);
+    
+    log("录音开始，已启动6秒静音自动停止功能");
   } catch (error) {
     log(`录音启动失败: ${error.message}`);
     statusEl.textContent = "状态：录音失败，请检查麦克风权限";
@@ -919,10 +996,20 @@ async function startRecording() {
 
 function stopRecording() {
   if (mediaRecorder && mediaRecorder.state !== "inactive") {
+    // 停止静音检测
+    if (window.silenceTimer) {
+      cancelAnimationFrame(window.silenceTimer);
+      window.silenceTimer = null;
+      log("静音检测已停止");
+    }
+    
     mediaRecorder.stop();
     statusEl.classList.remove("recording");
-    document.getElementById("btnRec").disabled = false;
-    document.getElementById("btnStop").disabled = true;
+    
+    // 隐藏录音按钮（现在是自动录音）
+    document.getElementById("btnRec").style.display = 'none';
+    document.getElementById("btnStop").style.display = 'none';
+    
     log("录音停止");
   }
 }
@@ -950,11 +1037,11 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById("btnSwitchToAgent").addEventListener("click", switchToAgent);
   document.getElementById("btnRec").addEventListener("click", startRecording);
   document.getElementById("btnStop").addEventListener("click", stopRecording);
-  document.getElementById("btnClear").addEventListener("click", clearHistory);
   document.getElementById("btnRestart").addEventListener("click", restartConversation);
-  document.getElementById("btnDebug").addEventListener("click", debugZhipu);
   document.getElementById("btnExpandHistory").addEventListener("click", toggleHistory);
   document.getElementById("btnCollapseHistory").addEventListener("click", toggleHistory);
+  
+
   
   // 初始化按钮状态
   updateButtonStates();
@@ -966,3 +1053,5 @@ document.addEventListener('DOMContentLoaded', function() {
   
   log("所有按钮事件监听器已设置完成");
 });
+
+

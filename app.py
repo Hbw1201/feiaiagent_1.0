@@ -8,6 +8,7 @@ from zhipu_agent import zhipu_conversation
 from xfyun_asr import asr_transcribe_file
 from xfyun_tts import tts_text_to_mp3
 
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -523,6 +524,8 @@ def debug_zhipu():
             "error": str(e),
             "error_type": type(e).__name__
         }), 500
+
+
 
 @app.errorhandler(Exception)
 def handle_exception(e):
