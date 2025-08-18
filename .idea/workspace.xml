@@ -6,6 +6,8 @@
   <component name="ChangeListManager">
     <list default="true" id="203d5db0-1476-4468-8474-a31410b80972" name="更改" comment="完善了用户界面，添加了自动录音功能。&#10;尚未加入数字人">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/app.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -136,6 +138,16 @@
       <workItem from="1755140328734" duration="72000" />
       <workItem from="1755140458892" duration="1561000" />
       <workItem from="1755156248700" duration="198000" />
+      <workItem from="1755158755330" duration="159000" />
+      <workItem from="1755256324229" duration="117000" />
+      <workItem from="1755256455525" duration="90000" />
+      <workItem from="1755256600566" duration="522000" />
+      <workItem from="1755257230559" duration="453000" />
+      <workItem from="1755267299105" duration="643000" />
+      <workItem from="1755491094247" duration="2633000" />
+      <workItem from="1755497878447" duration="1552000" />
+      <workItem from="1755500250671" duration="2390000" />
+      <workItem from="1755502742188" duration="21000" />
     </task>
     <task id="LOCAL-00001" summary="v1.0的乞丐版本，添加了本地问卷功能">
       <option name="closed" value="true" />
@@ -170,7 +182,7 @@
     <SUITE FILE_PATH="coverage/$zhipu_agent.coverage" NAME="zhipu_agent 覆盖结果" MODIFIED="1754901611605" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/feiaiagent_1_0$config.coverage" NAME="config 覆盖结果" MODIFIED="1755135359535" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/$test.coverage" NAME="test 覆盖结果" MODIFIED="1754964866321" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/feiaiagent_1_0$app.coverage" NAME="app 覆盖结果" MODIFIED="1755141033968" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/feiaiagent_1_0$app.coverage" NAME="app 覆盖结果" MODIFIED="1755256604679" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/$app.coverage" NAME="app 覆盖结果" MODIFIED="1754985115295" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
