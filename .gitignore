@@ -19,3 +19,4 @@ env/
 
 # 音频缓存
 static/tts/*.mp3
+static/tts/*.wav
