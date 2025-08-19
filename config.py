@@ -47,15 +47,17 @@ TTS_OUT_DIR.mkdir(parents=True, exist_ok=True)
 PLACEHOLDER_BEEP = TTS_OUT_DIR / "beep.wav"
 
 # ========== 可执行工具探测 ==========
+# 服务器环境强制使用 /usr/bin/ffmpeg
 # 可用环境变量 FFMPEG_PATH 覆盖（优先）
 ENV_FFMPEG_PATH = os.getenv("FFMPEG_PATH", "").strip()
 
 def resolve_ffmpeg_path() -> str:
     """
     返回可用的 ffmpeg 可执行路径：
-    优先 ENV_FFMPEG_PATH，其次系统 PATH（shutil.which）。
+    优先 ENV_FFMPEG_PATH，其次服务器默认路径 /usr/bin/ffmpeg，最后系统 PATH。
     若均不可用，返回空字符串。
     """
+    # 1. 优先使用环境变量
     if ENV_FFMPEG_PATH:
         p = pathlib.Path(ENV_FFMPEG_PATH)
         if p.exists():
@@ -64,7 +66,13 @@ def resolve_ffmpeg_path() -> str:
         wh = shutil.which(ENV_FFMPEG_PATH)
         if wh:
             return wh
-
+    
+    # 2. 强制使用服务器默认路径 /usr/bin/ffmpeg
+    server_ffmpeg_path = "/usr/bin/ffmpeg"
+    if pathlib.Path(server_ffmpeg_path).exists():
+        return server_ffmpeg_path
+    
+    # 3. 最后尝试系统 PATH
     wh = shutil.which("ffmpeg")
     return wh or ""
 
@@ -103,6 +111,12 @@ def validate_config() -> None:
 
     # 工具
     logger.info(f"FFMPEG_PATH    = {FFMPEG_PATH or '<not found>'}")
+    if FFMPEG_PATH == "/usr/bin/ffmpeg":
+        logger.info("✅ 使用服务器默认FFMPEG路径: /usr/bin/ffmpeg")
+    elif ENV_FFMPEG_PATH and FFMPEG_PATH == ENV_FFMPEG_PATH:
+        logger.info(f"✅ 使用环境变量FFMPEG路径: {FFMPEG_PATH}")
+    elif FFMPEG_PATH:
+        logger.info(f"✅ 使用系统PATH中的FFMPEG: {FFMPEG_PATH}")
     logger.info(f"SPEEXDEC_PATH  = {SPEEXDEC_PATH or '<not found>'}")
     
     # 设置环境变量供其他模块使用
@@ -120,7 +134,11 @@ def validate_config() -> None:
     if not XFYUN_APPID or not XFYUN_APIKEY or not XFYUN_APISECRET:
         logger.warning("⚠️  讯飞配置不完整：缺少 XFYUN_APPID / XFYUN_APIKEY / XFYUN_APISECRET。")
     if not FFMPEG_PATH:
-        logger.warning("⚠️  未检测到 ffmpeg，请安装并加入 PATH，或在 .env 中设置 FFMPEG_PATH。")
+        logger.warning("⚠️  未检测到 ffmpeg，请检查以下路径：")
+        logger.warning("    1. 环境变量 FFMPEG_PATH")
+        logger.warning("    2. 服务器默认路径 /usr/bin/ffmpeg")
+        logger.warning("    3. 系统 PATH 中的 ffmpeg")
+        logger.warning("    或在 .env 中设置 FFMPEG_PATH")
 
 # ========== 肺癌早筛问卷配置 ==========
 questions = [
