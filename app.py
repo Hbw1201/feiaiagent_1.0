@@ -15,8 +15,7 @@ logger = logging.getLogger(__name__)
 validate_config()
 
 app = Flask(__name__, static_url_path="/static", static_folder="static")
-# 同域部署时，CORS配置更宽松
-CORS(app, resources={r"/api/*": {"origins": "*"}, r"/static/*": {"origins": "*"}})
+CORS(app)
 
 # 添加缓存控制，防止静态文件被缓存
 @app.after_request
@@ -32,14 +31,6 @@ def check_tool_exists(tool_name_or_path):
 
 @app.route("/")
 def home():
-    return send_from_directory("static", "index.html")
-
-@app.route("/<path:filename>")
-def serve_static(filename):
-    """服务静态文件，支持前端路由"""
-    if filename in ["index.html", "script.js", "style.css", "beep.wav"]:
-        return send_from_directory("static", filename)
-    # 对于其他路径，返回index.html以支持前端路由
     return send_from_directory("static", "index.html")
 
 @app.route("/api/agent/start", methods=["POST"])
@@ -84,7 +75,8 @@ def agent_reply():
             conversation_id=session_id
         )
         
-        # 检查问卷是否完成
+        # 检查是否完成 - 通过检查响应内容来判断
+        # 注意：不包含"未获取到有效回复"，因为这只是API调用失败，不是问卷完成
         is_completed = (
             "肺癌早筛风险评估报告" in ai_response or
             "Agent_结果" in ai_response or
@@ -98,19 +90,93 @@ def agent_reply():
             len(ai_response) > 800  # 如果回复很长，可能是评估报告（提高阈值）
         )
         
-                # 检查问卷是否完成
+        # 添加详细的完成检测调试日志
+        logger.info(f"🔍 问卷完成检测调试信息:")
+        logger.info(f"  - ai_response长度: {len(ai_response)}")
+        logger.info(f"  - 包含'肺癌早筛风险评估报告': {'肺癌早筛风险评估报告' in ai_response}")
+        logger.info(f"  - 包含'Agent_结果': {'Agent_结果' in ai_response}")
+        logger.info(f"  - 包含'评估报告': {'评估报告' in ai_response}")
+        logger.info(f"  - 包含'风险评估': {'风险评估' in ai_response}")
+        logger.info(f"  - 包含'报告': {'报告' in ai_response}")
+        logger.info(f"  - 包含'问卷已完成': {'问卷已完成' in ai_response}")
+        logger.info(f"  - 包含'问卷完成': {'问卷完成' in ai_response}")
+        logger.info(f"  - 包含'所有问题': {'所有问题' in ai_response}")
+        logger.info(f"  - 包含'总结': {'总结' in ai_response}")
+        logger.info(f"  - 长度>800: {len(ai_response) > 800}")
+        logger.info(f"  - 最终判断is_completed: {is_completed}")
+        logger.info(f"  - ai_response内容预览: {ai_response[:200]}...")
         
-        # 检查API调用是否失败
+        # 首先检查是否是API调用失败
         if "未获取到有效回复" in ai_response or "java.lang.IllegalArgumentException" in ai_response or "Agent流程错误" in ai_response:
-            logger.error(f"智谱AI调用失败: {ai_response}")
-            question = "智谱AI暂时不可用，请稍后重试"
-            is_complete = False
-            final_session_id = session_id
+            logger.error(f"智谱AI调用失败或中断: {ai_response}")
+            
+            # 检查是否是Agent流程错误（节点报错）
+            if "Agent流程错误" in ai_response:
+                logger.info("检测到Agent流程错误，尝试重新询问当前问题...")
+                
+                # 尝试重新询问当前问题，而不是重新开始整个问卷
+                try:
+                    retry_response, retry_conversation_id = zhipu_conversation(
+                        prompt=f"用户回答：{answer_text}。请重新询问刚才的问题，如果用户回答有误，请给出更清晰的提示或重新表述问题。",
+                        conversation_id=session_id
+                    )
+                    
+                    if "未获取到有效回复" not in retry_response and "java.lang.IllegalArgumentException" not in retry_response and "Agent流程错误" not in retry_response:
+                        logger.info("重新询问成功，继续对话")
+                        question = retry_response
+                        is_complete = False
+                        final_session_id = retry_conversation_id
+                    else:
+                        logger.error("重新询问失败，尝试重新开始对话")
+                        # 如果重新询问也失败，则尝试重新开始
+                        question = "刚才的问题出现了错误，让我重新开始询问。请告诉我您的姓名。"
+                        is_complete = False
+                        # 创建新的会话
+                        new_response, new_conversation_id = zhipu_conversation(
+                            prompt="请开始肺癌早筛问卷，询问用户姓名"
+                        )
+                        if "未获取到有效回复" not in new_response and "java.lang.IllegalArgumentException" not in new_response and "Agent流程错误" not in new_response:
+                            question = new_response
+                            final_session_id = new_conversation_id
+                        else:
+                            question = "智谱AI暂时不可用，请稍后重试。错误：Agent流程中断"
+                            final_session_id = session_id
+                except Exception as retry_e:
+                    logger.error(f"重新询问失败: {retry_e}")
+                    question = "刚才的问题出现了错误，让我重新开始询问。请告诉我您的姓名。"
+                    is_complete = False
+                    final_session_id = session_id
+            else:
+                # 其他类型的API错误，尝试重新开始对话
+                try:
+                    logger.info("尝试重新开始对话...")
+                    retry_response, retry_conversation_id = zhipu_conversation(
+                        prompt="请重新开始肺癌早筛问卷，询问用户姓名"
+                    )
+                    
+                    if "未获取到有效回复" not in retry_response and "java.lang.IllegalArgumentException" not in retry_response:
+                        logger.info("重试成功，继续对话")
+                        question = retry_response
+                        is_complete = False
+                        final_session_id = retry_conversation_id
+                    else:
+                        logger.error("重试失败，返回错误信息")
+                        question = "智谱AI暂时不可用，请稍后重试。错误：Agent流程中断"
+                        is_complete = False
+                except Exception as retry_e:
+                    logger.error(f"重试失败: {retry_e}")
+                    question = "智谱AI暂时不可用，请稍后重试。错误：Agent流程中断"
+                    is_complete = False
         elif is_completed:
+            # 问卷完成，直接使用ai_response
+            logger.info("检测到问卷完成")
+            logger.info(f"ai_response内容长度: {len(ai_response)}")
             question = ai_response
             is_complete = True
         else:
+            # 继续下一个问题
             question = ai_response
+            logger.info(f"智谱AI继续对话成功: {question}")
             is_complete = False
         
         final_session_id = conversation_id
@@ -365,19 +431,37 @@ def generate_assessment_report(answers):
     # 吸烟史评估
     if "吸烟史(1是 2否)" in answers and answers["吸烟史(1是 2否)"] == "1":
         report += "⚠️ 吸烟史：有吸烟史，增加肺癌风险\n"
+        if "累计吸烟年数" in answers and "吸烟频率(支/天)" in answers:
+            try:
+                years = float(answers["累计吸烟年数"])
+                daily = float(answers["吸烟频率(支/天)"])
+                pack_years = (years * daily) / 20  # 包年计算
+                if pack_years > 30:
+                    report += f"   重度吸烟：{pack_years:.1f}包年，高风险\n"
+                elif pack_years > 20:
+                    report += f"   中度吸烟：{pack_years:.1f}包年，中风险\n"
+                else:
+                    report += f"   轻度吸烟：{pack_years:.1f}包年，低风险\n"
+            except:
+                report += "   吸烟情况：需进一步评估\n"
     
+    # 被动吸烟评估
     if "被动吸烟(1否 2是)" in answers and answers["被动吸烟(1否 2是)"] == "2":
         report += "⚠️ 被动吸烟：存在被动吸烟情况\n"
     
+    # 职业暴露评估
     if "职业致癌物质接触(1有 2无)" in answers and answers["职业致癌物质接触(1有 2无)"] == "1":
         report += "⚠️ 职业暴露：存在职业致癌物质接触\n"
     
+    # 家族史评估
     if "三代以内直系亲属肺癌家族史(1有 2无)" in answers and answers["三代以内直系亲属肺癌家族史(1有 2无)"] == "1":
         report += "⚠️ 家族史：存在肺癌家族史，遗传风险增加\n"
     
+    # 症状评估
     if "最近是否有持续性干咳、痰中带血、声音嘶哑、反复同部位肺炎(1有 2无)" in answers and answers["最近是否有持续性干咳、痰中带血、声音嘶哑、反复同部位肺炎(1有 2无)"] == "1":
         report += "⚠️ 症状：存在可疑症状，建议及时就医\n"
     
+    # 影像检查
     if "一年内胸部CT检查(1是 2否)" in answers and answers["一年内胸部CT检查(1是 2否)"] == "2":
         report += "📋 建议：建议进行胸部CT检查\n"
     
@@ -415,7 +499,47 @@ def generate_assessment_report(answers):
     
     return report
 
+@app.route("/api/assessment_report/<session_id>", methods=["GET"])
+def get_assessment_report(session_id):
+    """获取指定会话的评估报告"""
+    try:
+        # 这里可以添加从数据库或缓存中获取评估报告的逻辑
+        # 目前先返回一个示例响应
+        return jsonify({
+            "session_id": session_id,
+            "has_report": True,
+            "message": "评估报告已生成，请查看对话历史"
+        })
+    except Exception as e:
+        logger.error(f"获取评估报告失败: {e}")
+        return jsonify({"error": f"获取评估报告失败: {str(e)}"}), 500
 
+@app.route("/api/debug/zhipu", methods=["POST"])
+def debug_zhipu():
+    """调试智谱AI连接"""
+    try:
+        data = request.get_json(force=True)
+        test_prompt = data.get("prompt", "请简单回复：测试成功")
+        
+        logger.info(f"测试智谱AI连接，提示词: {test_prompt}")
+        
+        # 测试智谱AI连接
+        ai_response, conversation_id = zhipu_conversation(prompt=test_prompt)
+        
+        return jsonify({
+            "success": True,
+            "response": ai_response,
+            "conversation_id": conversation_id,
+            "response_length": len(ai_response) if ai_response else 0,
+            "has_error": "未获取到有效回复" in ai_response or "java.lang.IllegalArgumentException" in ai_response
+        })
+    except Exception as e:
+        logger.error(f"智谱AI调试失败: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "error_type": type(e).__name__
+        }), 500
 
 
 

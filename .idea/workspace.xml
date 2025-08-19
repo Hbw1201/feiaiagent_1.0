@@ -4,8 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="203d5db0-1476-4468-8474-a31410b80972" name="更改" comment="完善了用户界面，添加了自动录音功能。&#10;尚未加入数字人">
+    <list default="true" id="203d5db0-1476-4468-8474-a31410b80972" name="更改" comment="chore: ignore TTS wav cache and untrack">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/app.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -146,7 +149,10 @@
       <workItem from="1755497878447" duration="1552000" />
       <workItem from="1755500250671" duration="2390000" />
       <workItem from="1755502742188" duration="21000" />
-      <workItem from="1755503101582" duration="617000" />
+      <workItem from="1755503101582" duration="1368000" />
+      <workItem from="1755505651053" duration="30000" />
+      <workItem from="1755570469034" duration="21000" />
+      <workItem from="1755570509334" duration="587000" />
     </task>
     <task id="LOCAL-00001" summary="v1.0的乞丐版本，添加了本地问卷功能">
       <option name="closed" value="true" />
@@ -164,7 +170,15 @@
       <option name="project" value="LOCAL" />
       <updated>1755135514884</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="chore: ignore TTS wav cache and untrack">
+      <option name="closed" value="true" />
+      <created>1755503928554</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1755503928554</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -175,13 +189,14 @@
     <MESSAGE value="v1.0的乞丐版本，添加了本地问卷功能" />
     <MESSAGE value="完善了用户界面，" />
     <MESSAGE value="完善了用户界面，添加了自动录音功能。&#10;尚未加入数字人" />
-    <option name="LAST_COMMIT_MESSAGE" value="完善了用户界面，添加了自动录音功能。&#10;尚未加入数字人" />
+    <MESSAGE value="chore: ignore TTS wav cache and untrack" />
+    <option name="LAST_COMMIT_MESSAGE" value="chore: ignore TTS wav cache and untrack" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/$zhipu_agent.coverage" NAME="zhipu_agent 覆盖结果" MODIFIED="1754901611605" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/feiaiagent_1_0$config.coverage" NAME="config 覆盖结果" MODIFIED="1755503223195" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/$test.coverage" NAME="test 覆盖结果" MODIFIED="1754964866321" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/feiaiagent_1_0$app.coverage" NAME="app 覆盖结果" MODIFIED="1755503228095" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/feiaiagent_1_0$app.coverage" NAME="app 覆盖结果" MODIFIED="1755571096463" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/$app.coverage" NAME="app 覆盖结果" MODIFIED="1754985115295" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
