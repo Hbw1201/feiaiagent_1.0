@@ -4,12 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="203d5db0-1476-4468-8474-a31410b80972" name="更改" comment="chore: ignore TTS wav cache and untrack">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/app.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
-    </list>
+    <list default="true" id="203d5db0-1476-4468-8474-a31410b80972" name="更改" comment="chore: ignore TTS wav cache and untrack" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -152,7 +147,7 @@
       <workItem from="1755503101582" duration="1368000" />
       <workItem from="1755505651053" duration="30000" />
       <workItem from="1755570469034" duration="21000" />
-      <workItem from="1755570509334" duration="587000" />
+      <workItem from="1755570509334" duration="912000" />
     </task>
     <task id="LOCAL-00001" summary="v1.0的乞丐版本，添加了本地问卷功能">
       <option name="closed" value="true" />
@@ -178,7 +173,23 @@
       <option name="project" value="LOCAL" />
       <updated>1755503928554</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="chore: ignore TTS wav cache and untrack">
+      <option name="closed" value="true" />
+      <created>1755571408240</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1755571408240</updated>
+    </task>
+    <task id="LOCAL-00005" summary="chore: ignore TTS wav cache and untrack">
+      <option name="closed" value="true" />
+      <created>1755571418316</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1755571418316</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
