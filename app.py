@@ -2,18 +2,11 @@
 import os, pathlib, shutil, subprocess, tempfile, logging, time
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
-
-from config import validate_config, TTS_OUT_DIR, FFMPEG_PATH, questions, questionnaire_reference
 from zhipu_agent import zhipu_conversation
 from xfyun_asr import asr_transcribe_file
 from xfyun_tts import tts_text_to_mp3
-
 from config import validate_config, TTS_OUT_DIR, FFMPEG_PATH, questions, questionnaire_reference
-from pydub import AudioSegment
 
-# 强制告诉 pydub 用 config.py 探测到的 ffmpeg 路径
-if FFMPEG_PATH:
-    AudioSegment.converter = FFMPEG_PATH
     
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
