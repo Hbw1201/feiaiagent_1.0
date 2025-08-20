@@ -225,12 +225,6 @@ def tts_text_to_mp3(text: str, out_dir: pathlib.Path, prefix: str):
     """
     将文本转换为音频文件，生成MP3格式以提高浏览器兼容性
     """
-    # 如果 out_dir 为空或不存在，强制使用默认目录
-    if not out_dir or str(out_dir).strip() == "":
-        out_dir = pathlib.Path("/www/wwwroot/feiaiagent_1.0/static/tts")
-
-    out_dir.mkdir(parents=True, exist_ok=True)  # 确保目录存在
-
     # 生成临时WAV文件名和最终MP3文件名
     temp_wav_fname = f"{prefix}_{uuid.uuid4().hex}.wav"
     final_mp3_fname = f"{prefix}_{uuid.uuid4().hex}.mp3"
