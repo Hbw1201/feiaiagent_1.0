@@ -23,7 +23,8 @@ class WsParam:
         self.AudioFile = audio_file
         self.CommonArgs = {"app_id": self.APPID}
         self.BusinessArgs = {
-            "domain": "iat", "language": "zh_cn", "accent": "mandarin",
+            #根据需要加点方言进去
+            "domain": "xfime-mianqie", "language": "zh_cn", "accent": "mandarin",
             "vinfo": 1, "vad_eos": 10000
         }
 
