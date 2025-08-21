@@ -27,6 +27,14 @@ class WsParam:
             "domain": "xfime-mianqie", "language": "zh_cn", "accent": "mandarin",
             "vinfo": 1, "vad_eos": 10000
         }
+        
+        # 检查环境变量，支持HTTPS部署
+        if not self.APPID or not self.APIKey or not self.APISecret:
+            # 尝试从环境变量获取
+            import os
+            self.APPID = os.getenv("XFYUN_APPID", self.APPID)
+            self.APIKey = os.getenv("XFYUN_APIKEY", self.APIKey)
+            self.APISecret = os.getenv("XFYUN_APISECRET", self.APISecret)
 
     def create_url(self):
         url = 'wss://ws-api.xfyun.cn/v2/iat'
