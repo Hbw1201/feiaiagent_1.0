@@ -3,5 +3,5 @@
   <component name="Black">
     <option name="sdkName" value="Python 3.11 (希望能过)" />
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.11 (api基础知识的复现)" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.9 (feiaiagent_2.0)" project-jdk-type="Python SDK" />
 </project>

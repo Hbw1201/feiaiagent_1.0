@@ -72,10 +72,12 @@
       </div>
     </div>
 
-
-
+    <!-- [MOD] 标题修改 + [ADD] 数字人视频元素 -->
     <div class="audio-section">
-      <h3>🔊 AI语音回复</h3>
+      <h3>🖼️ AI音/视频回复</h3>
+      <!-- 数字人视频（有视频时优先播放；无则保持隐藏） -->
+      <video id="digitalHumanVideo" controls playsinline style="display:none;max-width:100%;border-radius:8px;"></video>
+      <!-- TTS 音频（当无视频时回退播放） -->
       <audio id="ttsAudio" controls></audio>
     </div>
 
