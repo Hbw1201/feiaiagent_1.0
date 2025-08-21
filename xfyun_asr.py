@@ -15,6 +15,28 @@ XFYUN_APPID    = os.getenv("XFYUN_APPID")
 XFYUN_APIKEY   = os.getenv("XFYUN_APIKEY")
 XFYUN_APISECRET= os.getenv("XFYUN_APISECRET")
 
+def validate_asr_config():
+    """验证ASR配置是否完整"""
+    missing_configs = []
+    
+    if not XFYUN_APPID:
+        missing_configs.append("XFYUN_APPID")
+    if not XFYUN_APIKEY:
+        missing_configs.append("XFYUN_APIKEY")
+    if not XFYUN_APISECRET:
+        missing_configs.append("XFYUN_APISECRET")
+    
+    if missing_configs:
+        print(f"⚠️  ASR配置缺失: {', '.join(missing_configs)}")
+        print("请检查环境变量或.env文件配置")
+        return False
+    
+    print("✅ ASR配置验证通过")
+    print(f"APPID: {XFYUN_APPID[:8]}...")
+    print(f"APIKey: {XFYUN_APIKEY[:8]}...")
+    print(f"APISecret: {XFYUN_APISECRET[:8]}...")
+    return True
+
 class WsParam:
     def __init__(self, audio_file: str):
         self.APPID = XFYUN_APPID
