@@ -199,40 +199,83 @@ def agent_reply():
 
 @app.route("/api/asr", methods=["POST"])
 def asr():
-    if "audio" not in request.files:
-        return jsonify({"error": "no audio field"}), 400
+    try:
+        logger.info("=== ASR接口开始处理 ===")
+        logger.info(f"请求方法: {request.method}")
+        logger.info(f"请求头: {dict(request.headers)}")
+        logger.info(f"请求文件: {list(request.files.keys()) if request.files else '无文件'}")
+        
+        if "audio" not in request.files:
+            logger.error("ASR接口错误: 没有audio字段")
+            return jsonify({"error": "no audio field"}), 400
 
-    if not check_tool_exists("speexdec") and not check_tool_exists(FFMPEG_PATH):
-        return jsonify({"error": "缺少 ffmpeg 或 speexdec，请安装或在 FFMPEG_PATH 中指定路径"}), 500
+        # 检查FFMPEG路径
+        logger.info(f"当前FFMPEG_PATH: {FFMPEG_PATH}")
+        logger.info(f"FFMPEG_PATH存在: {check_tool_exists(FFMPEG_PATH)}")
+        logger.info(f"speexdec存在: {check_tool_exists('speexdec')}")
+        
+        if not check_tool_exists("speexdec") and not check_tool_exists(FFMPEG_PATH):
+            error_msg = f"缺少 ffmpeg 或 speexdec，请安装或在 FFMPEG_PATH 中指定路径。当前FFMPEG_PATH: {FFMPEG_PATH}"
+            logger.error(f"ASR接口错误: {error_msg}")
+            return jsonify({"error": error_msg}), 500
 
-    f = request.files["audio"]
-    with tempfile.TemporaryDirectory() as td:
-        in_path  = pathlib.Path(td) / f"input.{f.filename.split('.')[-1]}"
-        out_wav  = pathlib.Path(td) / "converted.wav"
-        f.save(in_path)
-
-        try:
-            if in_path.suffix.lower() in ['.spx', '.speex']:
-                if check_tool_exists("speexdec"):
-                    subprocess.run(["speexdec", str(in_path), str(out_wav)],
-                                   check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                    logger.info(f"使用 speexdec 解码 speex 文件: {in_path}")
+        f = request.files["audio"]
+        logger.info(f"音频文件信息: 文件名={f.filename}, 大小={f.content_length or '未知'} bytes")
+        
+        with tempfile.TemporaryDirectory() as td:
+            in_path = pathlib.Path(td) / f"input.{f.filename.split('.')[-1]}"
+            out_wav = pathlib.Path(td) / "converted.wav"
+            
+            logger.info(f"保存音频文件到: {in_path}")
+            f.save(in_path)
+            logger.info(f"音频文件保存成功，大小: {in_path.stat().st_size} bytes")
+            
+            try:
+                if in_path.suffix.lower() in ['.spx', '.speex']:
+                    if check_tool_exists("speexdec"):
+                        logger.info(f"使用 speexdec 解码 speex 文件: {in_path}")
+                        subprocess.run(["speexdec", str(in_path), str(out_wav)],
+                                       check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    else:
+                        logger.info(f"speexdec 不存在，使用 ffmpeg 解码 speex 文件: {in_path}")
+                        subprocess.run([FFMPEG_PATH, "-y", "-i", str(in_path),
+                                        "-ac", "1", "-ar", "16000", "-acodec", "pcm_s16le", str(out_wav)],
+                                       check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 else:
-                    logger.info(f"speexdec 不存在，使用 ffmpeg 解码 speex 文件: {in_path}")
+                    logger.info(f"使用 ffmpeg 转换音频文件: {in_path} -> {out_wav}")
                     subprocess.run([FFMPEG_PATH, "-y", "-i", str(in_path),
                                     "-ac", "1", "-ar", "16000", "-acodec", "pcm_s16le", str(out_wav)],
                                    check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            else:
-                subprocess.run([FFMPEG_PATH, "-y", "-i", str(in_path),
-                                "-ac", "1", "-ar", "16000", "-acodec", "pcm_s16le", str(out_wav)],
-                               check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        except FileNotFoundError:
-            return jsonify({"error": f"找不到 ffmpeg，请安装或修改 FFMPEG_PATH（当前值：{FFMPEG_PATH}）"}), 500
-        except subprocess.CalledProcessError:
-            return jsonify({"error": "音频转换失败，请检查文件格式"}), 500
+                
+                logger.info(f"音频转换完成，输出文件: {out_wav}, 大小: {out_wav.stat().st_size} bytes")
+                
+            except FileNotFoundError as e:
+                error_msg = f"找不到 ffmpeg，请安装或修改 FFMPEG_PATH（当前值：{FFMPEG_PATH}）。错误: {str(e)}"
+                logger.error(f"ASR接口错误: {error_msg}")
+                return jsonify({"error": error_msg}), 500
+            except subprocess.CalledProcessError as e:
+                error_msg = f"音频转换失败，请检查文件格式。错误: {str(e)}"
+                logger.error(f"ASR接口错误: {error_msg}")
+                return jsonify({"error": error_msg}), 500
+            except Exception as e:
+                error_msg = f"音频转换过程中发生未知错误: {str(e)}"
+                logger.error(f"ASR接口错误: {error_msg}")
+                return jsonify({"error": error_msg}), 500
 
-        text = asr_transcribe_file(str(out_wav))
-        return jsonify({"text": text})
+            logger.info("开始调用讯飞ASR进行语音识别...")
+            text = asr_transcribe_file(str(out_wav))
+            logger.info(f"ASR识别完成，结果: '{text}'")
+            
+            return jsonify({"text": text})
+            
+    except Exception as e:
+        error_msg = f"ASR接口处理过程中发生异常: {str(e)}"
+        logger.error(f"ASR接口异常: {error_msg}")
+        logger.error(f"异常类型: {type(e).__name__}")
+        logger.error(f"异常详情: {str(e)}")
+        import traceback
+        logger.error(f"异常堆栈: {traceback.format_exc()}")
+        return jsonify({"error": error_msg}), 500
 
 @app.route("/static/tts/<path:filename>")
 def serve_tts(filename):
@@ -241,6 +284,68 @@ def serve_tts(filename):
 @app.route("/api/health")
 def health():
     return jsonify({"ok": True})
+
+@app.route("/api/asr/health")
+def asr_health():
+    """ASR接口健康检查"""
+    try:
+        health_status = {
+            "status": "ok",
+            "ffmpeg": {
+                "path": FFMPEG_PATH,
+                "exists": check_tool_exists(FFMPEG_PATH),
+                "version": None
+            },
+            "speexdec": {
+                "exists": check_tool_exists("speexdec"),
+                "path": shutil.which("speexdec")
+            },
+            "temp_dir": {
+                "writable": True,
+                "path": str(tempfile.gettempdir())
+            }
+        }
+        
+        # 检查FFMPEG版本
+        if check_tool_exists(FFMPEG_PATH):
+            try:
+                result = subprocess.run([FFMPEG_PATH, "-version"], 
+                                      capture_output=True, text=True, timeout=5)
+                if result.returncode == 0:
+                    version_line = result.stdout.split('\n')[0]
+                    health_status["ffmpeg"]["version"] = version_line
+            except Exception as e:
+                health_status["ffmpeg"]["version"] = f"获取版本失败: {str(e)}"
+        
+        # 检查临时目录是否可写
+        try:
+            test_file = pathlib.Path(tempfile.gettempdir()) / f"test_{int(time.time())}.tmp"
+            test_file.write_text("test")
+            test_file.unlink()
+        except Exception as e:
+            health_status["temp_dir"]["writable"] = False
+            health_status["temp_dir"]["error"] = str(e)
+        
+        # 检查科大讯飞配置
+        try:
+            from config import XFYUN_APPID, XFYUN_APIKEY, XFYUN_APISECRET
+            health_status["xfyun"] = {
+                "appid": XFYUN_APPID,
+                "apikey": "已设置" if XFYUN_APIKEY else "未设置",
+                "apisecret": "已设置" if XFYUN_APISECRET else "未设置"
+            }
+        except Exception as e:
+            health_status["xfyun"] = {"error": str(e)}
+        
+        return jsonify(health_status)
+        
+    except Exception as e:
+        logger.error(f"ASR健康检查失败: {e}")
+        return jsonify({
+            "status": "error",
+            "error": str(e),
+            "timestamp": time.time()
+        }), 500
 
 @app.route("/api/questionnaire_status", methods=["GET"])
 def get_questionnaire_status():

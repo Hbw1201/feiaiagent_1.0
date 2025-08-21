@@ -79,26 +79,63 @@ def asr_transcribe_file(audio_wav_path: str) -> str:
     输入：已转换为 16k/16bit/mono 的 wav 文件路径
     输出：识别文本（一次性返回）
     """
+    # 验证ASR配置
+    if not validate_asr_config():
+        return "ASR配置错误，请检查科大讯飞API配置"
+    
+    # 检查音频文件是否存在
+    if not os.path.exists(audio_wav_path):
+        print(f"ASR错误: 音频文件不存在: {audio_wav_path}")
+        return "音频文件不存在"
+    
+    # 检查音频文件大小
+    file_size = os.path.getsize(audio_wav_path)
+    if file_size == 0:
+        print(f"ASR错误: 音频文件为空: {audio_wav_path}")
+        return "音频文件为空"
+    
+    print(f"ASR开始处理音频文件: {audio_wav_path}, 大小: {file_size} bytes")
+    
     result_text = []
-
+    max_retries = 3
+    retry_count = 0
+    
     def on_message(ws, message):
         try:
             resp = json.loads(message)
             code = resp.get("code", -1)
             if code != 0:
-                print("ASR error:", resp.get("message"), code)
+                error_msg = resp.get("message", "未知错误")
+                print(f"ASR error: {error_msg}, code: {code}")
+                # 记录详细错误信息
+                if "rate limit" in error_msg.lower() or "quota" in error_msg.lower():
+                    print("ASR配额限制，请检查API使用量")
+                elif "network" in error_msg.lower() or "timeout" in error_msg.lower():
+                    print("ASR网络错误，可能需要重试")
                 return
             for blk in resp["data"]["result"]["ws"]:
                 for cw in blk["cw"]:
                     result_text.append(cw["w"])
         except Exception as e:
-            print("ASR parse error:", e)
+            print(f"ASR parse error: {e}")
+            import traceback
+            print(f"ASR parse error traceback: {traceback.format_exc()}")
 
     def on_error(ws, error):
-        print("ASR ws error:", error)
+        print(f"ASR WebSocket错误: {error}")
+        # 记录错误类型
+        if "connection refused" in str(error).lower():
+            print("ASR连接被拒绝，可能是网络问题或服务不可用")
+        elif "timeout" in str(error).lower():
+            print("ASR连接超时，可能需要检查网络")
+        elif "ssl" in str(error).lower():
+            print("ASR SSL连接问题，检查HTTPS配置")
 
-    def on_close(ws, a, b):
-        pass
+    def on_close(ws, close_status_code, close_msg):
+        print(f"ASR WebSocket连接关闭: status_code={close_status_code}, msg={close_msg}")
+        # 检查是否是异常关闭
+        if close_status_code != 1000:  # 1000是正常关闭
+            print(f"ASR连接异常关闭，状态码: {close_status_code}")
 
     def on_open(ws):
         def run(*args):

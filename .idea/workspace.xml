@@ -7,6 +7,7 @@
     <list default="true" id="203d5db0-1476-4468-8474-a31410b80972" name="更改" comment="chore: ignore TTS wav cache and untrack">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/app.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/xfyun_asr.py" beforeDir="false" afterPath="$PROJECT_DIR$/xfyun_asr.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -156,6 +157,8 @@
       <workItem from="1755585168527" duration="2575000" />
       <workItem from="1755616228579" duration="682000" />
       <workItem from="1755656915652" duration="1596000" />
+      <workItem from="1755658894117" duration="280000" />
+      <workItem from="1755743152366" duration="297000" />
     </task>
     <task id="LOCAL-00001" summary="v1.0的乞丐版本，添加了本地问卷功能">
       <option name="closed" value="true" />
