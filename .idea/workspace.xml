@@ -5,11 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="203d5db0-1476-4468-8474-a31410b80972" name="更改" comment="chore: ignore TTS wav cache and untrack">
-      <change afterPath="$PROJECT_DIR$/test.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/app.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/digital_human.py" beforeDir="false" afterPath="$PROJECT_DIR$/digital_human.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/xfyun_asr.py" beforeDir="false" afterPath="$PROJECT_DIR$/xfyun_asr.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -45,12 +41,12 @@
     &quot;assignee&quot;: &quot;Hbw1201&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings">{
-  &quot;selectedUrlAndAccountId&quot;: {
-    &quot;url&quot;: &quot;git@github.com:ek12345/cute.git&quot;,
-    &quot;accountId&quot;: &quot;6a9372ba-79cc-4145-97fb-fa71a760bcad&quot;
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/ek12345/feiaiagent_2.0.git",
+    "accountId": "6a9372ba-79cc-4145-97fb-fa71a760bcad"
   }
-}</component>
+}]]></component>
   <component name="ProjectColorInfo">{
   &quot;customColor&quot;: &quot;&quot;,
   &quot;associatedIndex&quot;: 3
@@ -168,6 +164,7 @@
       <workItem from="1755786279994" duration="2373000" />
       <workItem from="1756092915815" duration="1851000" />
       <workItem from="1756139387851" duration="1000" />
+      <workItem from="1756264283479" duration="965000" />
     </task>
     <task id="LOCAL-00001" summary="v1.0的乞丐版本，添加了本地问卷功能">
       <option name="closed" value="true" />
