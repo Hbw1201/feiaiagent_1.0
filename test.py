@@ -1,18 +1,20 @@
 # digital_human.py
 # -*- coding: utf-8 -*-
 """
-通义 CosyVoice(WS) 文本转语音 + LivePortrait 合成视频（极速&稳态版）
+通义 CosyVoice(WS) 文本转语音 + LivePortrait 合成视频（提速版）
 - 语音 wav 输出：static/tts/
 - 数字人视频 mp4 输出：static/video/
 
-环境变量（必备）：
-- DASHSCOPE_API_KEY        ：阿里云 DashScope API Key（以 "sk-" 开头）
-- DIGITAL_HUMAN_IMAGE_PATH ：本地真人正脸照片路径（单人、无遮挡、清晰）
+环境变量：
+- DASHSCOPE_API_KEY        ：阿里云 DashScope API Key（必填，以 "sk-" 开头）
+- DIGITAL_HUMAN_IMAGE_PATH ：本地真人正脸照片路径（必填，单人、无遮挡、清晰）
 
 （可选）若使用 OSS 预签名直传，请提供：
 - OSS_PRESIGNED_URL_FACE_JPG     ：face.jpg 的 PUT 预签名 URL
 - OSS_PRESIGNED_URL_SPEECH_WAV   ：speech.wav 的 PUT 预签名 URL
-- OSS_PUBLIC_BASE                ：公开可读基址（例：https://your-bucket.oss-cn-xxx.aliyuncs.com）
+- OSS_PUBLIC_BASE                ：公开可读基址（例：https://your-bucket.oss-cn-shanghai.aliyuncs.com）
+
+Author: 2511 项目配套
 """
 
 import os
@@ -20,20 +22,18 @@ import io
 import json
 import time
 import uuid
+import shutil
+import subprocess
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple, List
+from typing import Any, Dict, Optional, Tuple, Callable, List
 
 import requests
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
-
 from PIL import Image
-import websocket
-from websocket import WebSocketConnectionClosedException, WebSocketTimeoutException
+import websocket  # websocket-client
 
 # ========= 基本配置 =========
 API_KEY = os.getenv("DASHSCOPE_API_KEY", "sk-d8f898e299f44dad8c6f83cc51020ed2")
-IMAGE_PATH = os.getenv("DIGITAL_HUMAN_IMAGE_PATH", r"C:\Users\Administrator\Pictures\Saved Pictures\R (1).jpg")#可以改，本地图片
+IMAGE_PATH = os.getenv("DIGITAL_HUMAN_IMAGE_PATH", r"C:\Users\Administrator\Pictures\Saved Pictures\R (1).jpg")
 
 # CosyVoice TTS 参数
 TTS_MODEL = "cosyvoice-v2"
@@ -41,18 +41,17 @@ TTS_VOICE = "longxiu_v2"        # v2 模型用 *_v2 音色
 TTS_FORMAT = "wav"
 TTS_SAMPLE_RATE = 16000
 
-# ====== 极速模式参数 ======
-VIDEO_FPS = 15             # 20 -> 15，嘴型仍自然，渲染更快
-MOUTH_MOVE_STRENGTH = 0.9  # 1.0 -> 0.9
-HEAD_MOVE_STRENGTH = 0.3   # 0.4 -> 0.3
-EYE_MOVE_FREQ = 0.5
+# LivePortrait 参数（提速配置：FPS 降至 20，关闭 paste_back，适度降低头部动作）
 TEMPLATE_ID = "normal"
+EYE_MOVE_FREQ = 0.5
+VIDEO_FPS = 20
+MOUTH_MOVE_STRENGTH = 1.0
+PASTE_BACK = False
+HEAD_MOVE_STRENGTH = 0.4
 
-POLL_INTERVAL = 2          # 3 -> 2，更快拿到SUCCEEDED
+# 轮询（更快更稳）
+POLL_INTERVAL = 3
 POLL_TIMEOUT = 1200
-
-# 是否跳过单独的人脸检测（同一张头像反复用建议 True）
-SKIP_FACE_DETECT = True
 
 # DashScope API
 BASE_API = "https://dashscope.aliyuncs.com/api/v1"
@@ -60,80 +59,34 @@ FACE_DETECT_ENDPOINT = f"{BASE_API}/services/aigc/image2video/face-detect"
 VIDEO_SYNTH_ENDPOINT = f"{BASE_API}/services/aigc/image2video/video-synthesis/"
 TASK_QUERY_ENDPOINT = f"{BASE_API}/tasks"
 
-# CosyVoice WebSocket
+# CosyVoice WebSocket（总入口）
 COSY_WS_URL = "wss://dashscope.aliyuncs.com/api-ws/v1/inference"
 
 JSON_HEADERS = {
     "Authorization": f"Bearer {API_KEY}",
     "Content-Type": "application/json",
 }
+
 UA = {"User-Agent": "curl/8.5.0", "Accept": "*/*"}
 
-# ========= HTTP Session（带重试） =========
-SESSION = requests.Session()
-SESSION.headers.update({"Connection": "keep-alive"})
-_retries = Retry(
-    total=3, backoff_factor=0.6,
-    status_forcelist=[408, 429, 500, 502, 503, 504],
-    raise_on_status=False
-)
-SESSION.mount("https://", HTTPAdapter(max_retries=_retries))
-SESSION.mount("http://", HTTPAdapter(max_retries=_retries))
-
-def post_json(url, headers, payload, timeout=30):
-    r = SESSION.post(url, headers=headers, data=json.dumps(payload), timeout=timeout)
-    r.raise_for_status()
-    return r
-
-def get_stream(url, timeout=60):
-    return SESSION.get(url, stream=True, timeout=timeout)
-
-def head_or_get_ok(url: str, timeout=8) -> bool:
-    try:
-        r = SESSION.head(url, timeout=timeout, allow_redirects=True)
-        if r.status_code < 400 and r.headers.get("Content-Length", "1") != "0":
-            return True
-        rg = SESSION.get(url, stream=True, timeout=timeout)
-        ok = rg.status_code < 400
-        if ok:
-            rg.close()
-        return ok
-    except requests.RequestException:
-        return False
-
-# ========= 全局 WS 连接（复用&预热&自愈） =========
+# ========= 全局 WS 连接（进程级复用） =========
 _TTS_WS = None
 
-def _build_ws(api_key: str):
-    for k in ("HTTP_PROXY","http_proxy","HTTPS_PROXY","https_proxy"):
-        os.environ.pop(k, None)
-    headers = [f"Authorization: Bearer {api_key}"]
-    ws = websocket.create_connection(
-        COSY_WS_URL,
-        header=headers,
-        enable_multithread=True,
-        timeout=30
-    )
-    return ws
-
-def _get_ws(api_key: str, force_new: bool = False):
+def _get_tts_ws(api_key: str):
+    """获取或创建全局复用的 CosyVoice WS 连接；统一用 'Bearer'。"""
     global _TTS_WS
-    if force_new or _TTS_WS is None:
-        _TTS_WS = _build_ws(api_key)
+    if _TTS_WS is None:
+        # 避免系统代理干扰
+        for k in ("HTTP_PROXY", "http_proxy", "HTTPS_PROXY", "https_proxy"):
+            os.environ.pop(k, None)
+        headers = [f"Authorization: Bearer {api_key}"]
+        _TTS_WS = websocket.create_connection(
+            COSY_WS_URL,
+            header=headers,
+            enable_multithread=True
+            # 如需跳过企业自签证书校验，可添加 sslopt={"cert_reqs": ssl.CERT_NONE}
+        )
     return _TTS_WS
-
-def _safe_send(ws, payload: str) -> bool:
-    try:
-        ws.send(payload)
-        return True
-    except (WebSocketConnectionClosedException, WebSocketTimeoutException, BrokenPipeError, OSError):
-        return False
-
-def _safe_recv(ws):
-    try:
-        return ws.recv()
-    except (WebSocketConnectionClosedException, WebSocketTimeoutException, BrokenPipeError, OSError):
-        return None
 
 # ===== 工具与异常 =====
 class DashScopeError(Exception):
@@ -152,8 +105,8 @@ def _raise_for_status(resp: requests.Response):
 # ---------- 压图 ----------
 def compress_image_to_jpeg_bytes(
     img_path: str,
-    max_side: int = 1024,
-    target_max_bytes: int = 5 * 1024 * 1024
+    max_side: int = 1024,                 # 提速：默认压到 1024 边长
+    target_max_bytes: int = 5 * 1024 * 1024  # 提速：控制在 5MB 内
 ) -> bytes:
     img = Image.open(img_path)
     if img.mode in ("RGBA", "LA"):
@@ -165,6 +118,7 @@ def compress_image_to_jpeg_bytes(
         img = img.convert("RGB")
 
     w, h = img.size
+    # 修正极端长宽比
     ratio = max(w, h) / max(1, min(w, h))
     if ratio > 2:
         if w >= h:
@@ -176,6 +130,7 @@ def compress_image_to_jpeg_bytes(
         img = img.resize((max(1, new_w), max(1, new_h)), Image.LANCZOS)
         w, h = img.size
 
+    # 限制最长边
     if max(w, h) > max_side:
         if w >= h:
             new_w = max_side
@@ -190,6 +145,7 @@ def compress_image_to_jpeg_bytes(
         img.save(buf, format="JPEG", quality=quality, optimize=True)
         return buf.getvalue()
 
+    # 逐步压缩到目标体积
     quality = 88
     jpg = encode(quality)
     while len(jpg) > target_max_bytes and quality > 50:
@@ -200,7 +156,7 @@ def compress_image_to_jpeg_bytes(
 # ---------- 公网直链上传（OSS 优先，失败回落） ----------
 def upload_to_0x0(file_bytes: bytes, filename: str, mime: str) -> str:
     files = {"file": (filename, io.BytesIO(file_bytes), mime)}
-    resp = SESSION.post("https://0x0.st", files=files, headers=UA, timeout=60)
+    resp = requests.post("https://0x0.st", files=files, headers=UA, timeout=60)
     _raise_for_status(resp)
     url = resp.text.strip()
     if not (url.startswith("http://") or url.startswith("https://")):
@@ -210,7 +166,7 @@ def upload_to_0x0(file_bytes: bytes, filename: str, mime: str) -> str:
 def upload_to_catbox(file_bytes: bytes, filename: str, mime: str) -> str:
     data = {"reqtype": "fileupload"}
     files = {"fileToUpload": (filename, io.BytesIO(file_bytes), mime)}
-    resp = SESSION.post("https://catbox.moe/user/api.php", data=data, files=files, headers=UA, timeout=120)
+    resp = requests.post("https://catbox.moe/user/api.php", data=data, files=files, headers=UA, timeout=120)
     _raise_for_status(resp)
     url = resp.text.strip()
     if not url.startswith("http"):
@@ -218,7 +174,7 @@ def upload_to_catbox(file_bytes: bytes, filename: str, mime: str) -> str:
     return url
 
 def upload_to_transfer_sh(file_bytes: bytes, filename: str, mime: str) -> str:
-    resp = SESSION.put(f"https://transfer.sh/{filename}", data=file_bytes, headers=UA, timeout=120)
+    resp = requests.put(f"https://transfer.sh/{filename}", data=file_bytes, headers=UA, timeout=120)
     _raise_for_status(resp)
     url = resp.text.strip()
     if not url.startswith("http"):
@@ -226,13 +182,21 @@ def upload_to_transfer_sh(file_bytes: bytes, filename: str, mime: str) -> str:
     return url
 
 def upload_to_oss_presigned(file_bytes: bytes, filename: str, mime: str) -> Optional[str]:
+    """使用 OSS 预签名直传（强烈建议）。需提供：
+    - OSS_PRESIGNED_URL_<FILENAME UPPER DOT->UNDERSCORE>，例如：
+      OSS_PRESIGNED_URL_FACE_JPG / OSS_PRESIGNED_URL_SPEECH_WAV
+    - OSS_PUBLIC_BASE：公开可读基址
+    """
     env_key = "OSS_PRESIGNED_URL_" + filename.upper().replace('.', '_')
     presigned_url = os.getenv(env_key)
     base_url = os.getenv("OSS_PUBLIC_BASE", "")
     if not presigned_url or not base_url:
         return None
     try:
-        r = SESSION.put(presigned_url, data=file_bytes, headers={"Content-Type": mime, **UA}, timeout=30)
+        r = requests.put(
+            presigned_url, data=file_bytes,
+            headers={"Content-Type": mime, **UA}, timeout=30
+        )
         r.raise_for_status()
         return f"{base_url.rstrip('/')}/{filename}"
     except Exception as e:
@@ -240,11 +204,13 @@ def upload_to_oss_presigned(file_bytes: bytes, filename: str, mime: str) -> Opti
         return None
 
 def upload_public(file_bytes: bytes, filename: str, mime: str) -> str:
+    # 1) OSS 预签名优先
     url = upload_to_oss_presigned(file_bytes, filename, mime)
     if url:
         print(f"[Upload] 使用 OSS 成功：{url}")
         return url
 
+    # 2) 回落公共盘（0x0 -> catbox -> transfer.sh）
     errors = []
     for uploader in (upload_to_0x0, upload_to_catbox, upload_to_transfer_sh):
         try:
@@ -256,7 +222,7 @@ def upload_public(file_bytes: bytes, filename: str, mime: str) -> str:
             print(f"[Upload] {uploader.__name__} 失败：{e}")
     raise DashScopeError("所有上传方式均失败：\n" + "\n".join(errors))
 
-# ---------- TTS（CosyVoice WS，同步；断线自愈） ----------
+# ---------- TTS（CosyVoice，通过 websocket-client，同步） ----------
 def tts_cosyvoice_ws_to_file_sync(
     text: str,
     api_key: str,
@@ -266,71 +232,74 @@ def tts_cosyvoice_ws_to_file_sync(
     fmt: str = TTS_FORMAT,
     out_path: Path = Path("static/tts") / "tts.wav",
 ) -> Path:
+    ws = _get_tts_ws(api_key)  # 复用连接
+    task_id = str(uuid.uuid4())
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
-    def _run(ws) -> bool:
-        task_id = str(uuid.uuid4())
-        start_msg = json.dumps({
-            "header":{"action":"run-task","task_id":task_id,"streaming":"duplex"},
-            "payload":{"task_group":"audio","task":"tts","function":"SpeechSynthesizer",
-                       "model":model,"parameters":{"text_type":"PlainText","voice":voice,
-                                                  "format":fmt,"sample_rate":sample_rate},
-                       "input":{}}
-        })
-        if not _safe_send(ws, start_msg):
-            return False
+    run_task = {
+        "header": {"action": "run-task", "task_id": task_id, "streaming": "duplex"},
+        "payload": {
+            "task_group": "audio",
+            "task": "tts",
+            "function": "SpeechSynthesizer",
+            "model": model,
+            "parameters": {
+                "text_type": "PlainText",
+                "voice": voice,
+                "format": fmt,
+                "sample_rate": sample_rate
+            },
+            "input": {},
+        },
+    }
+    ws.send(json.dumps(run_task))
 
-        started = finished = False
-        with open(out_path, "wb") as f:
-            while True:
-                msg = _safe_recv(ws)
-                if msg is None:
-                    return False
-                if isinstance(msg, (bytes, bytearray)):
-                    f.write(msg)
-                    continue
-                try:
-                    data = json.loads(msg)
-                except Exception:
-                    continue
-                ev = data.get("header",{}).get("event")
-                if ev == "task-started":
-                    started = True
-                    _safe_send(ws, json.dumps({
-                        "header":{"action":"continue-task","task_id":task_id,"streaming":"duplex"},
-                        "payload":{"input":{"text":text}}
-                    }))
-                    _safe_send(ws, json.dumps({
-                        "header":{"action":"finish-task","task_id":task_id,"streaming":"duplex"},
-                        "payload":{"input":{}}
-                    }))
-                elif ev == "task-finished":
-                    finished = True
-                    break
-                elif ev == "task-failed":
-                    raise DashScopeError(f"TTS 失败：{data}")
-        if not started or not finished:
-            return False
-        return True
+    started = False
+    finished = False
 
-    ws = _get_ws(api_key)
-    ok = _run(ws)
-    if not ok:
-        try:
-            ws.close()
-        except Exception:
-            pass
-        ws = _get_ws(api_key, force_new=True)
-        ok = _run(ws)
-        if not ok:
-            raise DashScopeError("TTS 连接丢失且重试失败")
+    with open(out_path, "wb") as f:
+        while True:
+            msg = ws.recv()
+            if isinstance(msg, (bytes, bytearray)):
+                f.write(msg)
+                continue
+
+            # 文本帧（JSON）
+            try:
+                data = json.loads(msg)
+            except Exception:
+                continue
+
+            event = data.get("header", {}).get("event")
+            if event == "task-started":
+                started = True
+                ws.send(json.dumps({
+                    "header": {"action": "continue-task", "task_id": task_id, "streaming": "duplex"},
+                    "payload": {"input": {"text": text}},
+                }))
+                ws.send(json.dumps({
+                    "header": {"action": "finish-task", "task_id": task_id, "streaming": "duplex"},
+                    "payload": {"input": {}},
+                }))
+            elif event == "task-finished":
+                finished = True
+                break
+            elif event == "task-failed":
+                raise DashScopeError(f"TTS 失败：{data}")
+
+    if not started:
+        raise DashScopeError("TTS 未进入 task-started，请检查 voice/model 权限或更换音色。")
+    if not finished:
+        raise DashScopeError("TTS 结束但未收到 task-finished。")
+
     return out_path
 
 # ---------- LivePortrait ----------
 def face_detect(image_url: str) -> bool:
     payload = {"model": "liveportrait-detect", "input": {"image_url": image_url}}
-    resp = post_json(FACE_DETECT_ENDPOINT, JSON_HEADERS, payload)
+    resp = requests.post(FACE_DETECT_ENDPOINT, headers=JSON_HEADERS, data=json.dumps(payload))
+    _raise_for_status(resp)
     data = resp.json()
     print("[FaceDetect] 结果：", json.dumps(data, ensure_ascii=False, indent=2))
     return bool(data.get("output", {}).get("pass") is True)
@@ -345,11 +314,12 @@ def start_liveportrait(image_url: str, audio_url: str) -> str:
             "eye_move_freq": EYE_MOVE_FREQ,
             "video_fps": VIDEO_FPS,
             "mouth_move_strength": MOUTH_MOVE_STRENGTH,
-            "paste_back": False,  # 极速：关闭背景融合
+            "paste_back": PASTE_BACK,
             "head_move_strength": HEAD_MOVE_STRENGTH,
         },
     }
-    resp = post_json(VIDEO_SYNTH_ENDPOINT, headers, payload)
+    resp = requests.post(VIDEO_SYNTH_ENDPOINT, headers=headers, data=json.dumps(payload))
+    _raise_for_status(resp)
     data = resp.json()
     print("[LivePortrait] 发起任务返回：", json.dumps(data, ensure_ascii=False, indent=2))
     task_id = data.get("task_id") or data.get("output", {}).get("task_id") or data.get("request_id")
@@ -365,7 +335,7 @@ def poll_task(task_id: str) -> Dict[str, Any]:
     url = f"{TASK_QUERY_ENDPOINT}/{task_id}"
     start = time.time()
     while True:
-        resp = SESSION.get(url, headers=JSON_HEADERS, timeout=30)
+        resp = requests.get(url, headers=JSON_HEADERS)
         _raise_for_status(resp)
         data = resp.json()
         status = _extract_status(data)
@@ -387,7 +357,7 @@ def _scan_for_video_url(v: Any, out: List[str]):
         if isinstance(v, str) and v.startswith("http") and ("mp4" in v or "video" in v):
             out.append(v)
 
-def extract_remote_video_url(result_json: Dict[str, Any]) -> Optional[str]:
+def download_video(result_json: Dict[str, Any], out_dir: Path) -> Optional[Path]:
     video_url = (
         result_json.get("output", {}).get("results", {}).get("video_url")
         or result_json.get("output", {}).get("video_url")
@@ -398,10 +368,7 @@ def extract_remote_video_url(result_json: Dict[str, Any]) -> Optional[str]:
         _scan_for_video_url(result_json, cands)
         if cands:
             video_url = cands[0]
-    return video_url
 
-def download_video(result_json: Dict[str, Any], out_dir: Path) -> Optional[Path]:
-    video_url = extract_remote_video_url(result_json)
     if not video_url:
         print("[Download] 未找到视频URL，原始结果：", json.dumps(result_json, ensure_ascii=False, indent=2))
         return None
@@ -409,7 +376,7 @@ def download_video(result_json: Dict[str, Any], out_dir: Path) -> Optional[Path]
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / f"liveportrait_{int(time.time())}.mp4"
     print(f"[Download] 开始下载视频：{video_url}")
-    with get_stream(video_url, timeout=120) as r:
+    with requests.get(video_url, stream=True) as r:
         r.raise_for_status()
         with open(out_path, "wb") as f:
             for chunk in r.iter_content(chunk_size=8192):
@@ -420,32 +387,31 @@ def download_video(result_json: Dict[str, Any], out_dir: Path) -> Optional[Path]
 
 # ---------- 预热 ----------
 def warmup_tts(static_root: str = "static"):
+    """可选：进程启动后调用一次，预热 TTS，减少首句延迟"""
     if not API_KEY or not API_KEY.startswith("sk-"):
         return
     tts_dir = Path(static_root) / "tts"
     tts_dir.mkdir(parents=True, exist_ok=True)
     warmup_file = tts_dir / "warmup.wav"
     try:
-        _ = _get_ws(API_KEY)
         tts_cosyvoice_ws_to_file_sync("您好", API_KEY, out_path=warmup_file)
         print("[Warmup] TTS 预热完成：", warmup_file)
     except Exception as e:
         print("[Warmup] TTS 预热失败：", e)
 
-# ---------- 对外主函数 ----------
+# ---------- 对外主函数：一键生成数字人 & 语音 ----------
 def generate_digital_human_assets(
     text: str,
     prefix: str,
-    ffmpeg_path: str = "",   # 保留签名，但不再转 mp3
+    ffmpeg_path: str = "",         # 已不需要 mp3 转码，可忽略
     static_root: str = "static",
-) -> Tuple[Path, Optional[Path], str, str, str]:
+) -> Tuple[Path, Path, str, str]:
     """
-    返回：(wav_path, mp4_path, tts_url, video_url, video_stream_url)
+    返回：(wav_path, mp4_path, tts_url, video_url)
     - wav_path：本地 wav 路径（供前端播放）
-    - mp4_path：本地 mp4 路径（数字人视频，可能为空）
+    - mp4_path：本地 mp4 路径（数字人视频）
     - tts_url ：/static/tts/<file>.wav
-    - video_url：/static/video/<file>.mp4（若已落盘）
-    - video_stream_url：远端 mp4 直链（优先用于“即播”）
+    - video_url：/static/video/<file>.mp4
     """
     if not API_KEY or not API_KEY.startswith("sk-"):
         raise RuntimeError("DASHSCOPE_API_KEY 未配置或格式不正确（应以 sk- 开头）")
@@ -461,46 +427,36 @@ def generate_digital_human_assets(
     ts = int(time.time())
     wav_out = tts_dir / f"{prefix}_{ts}.wav"
 
-    # 1) TTS
-    t0 = time.time()
+    # 1) 本地 TTS (CosyVoice WS) —— 直接输出 wav（不再转 mp3，加速）
     wav_path = tts_cosyvoice_ws_to_file_sync(
         text, API_KEY,
         model=TTS_MODEL, voice=TTS_VOICE, sample_rate=TTS_SAMPLE_RATE, fmt=TTS_FORMAT,
         out_path=wav_out
     )
-    print(f"[TIMING] TTS {time.time()-t0:.2f}s")
 
-    # 2) 上传图片/音频获取直链（OSS 优先）
-    t1 = time.time()
+    # 2) 上传图片 + 音频获取直链（OSS 优先，失败回落）
     jpg_bytes = compress_image_to_jpeg_bytes(IMAGE_PATH)
     image_url = upload_public(jpg_bytes, "face.jpg", "image/jpeg")
     with open(wav_path, "rb") as f:
         audio_url = upload_public(f.read(), "speech.wav", "audio/wav")
 
-    if not head_or_get_ok(image_url) or not head_or_get_ok(audio_url):
-        raise DashScopeError("外链不可达：请使用可读直链（建议 OSS 预签名+PUBLIC_BASE）")
-    print(f"[TIMING] 上传+校验 {time.time()-t1:.2f}s")
-
-    # 3) LivePortrait 渲染
-    t2 = time.time()
-    if not SKIP_FACE_DETECT:
-        if not face_detect(image_url):
-            raise DashScopeError("人脸检测未通过：请用清晰、无遮挡、单人正脸，≤5MB，最长边≤1024。")
+    # 3) 人脸检测、合成、下载视频
+    if not face_detect(image_url):
+        raise DashScopeError("人脸检测未通过：请换清晰的真人正脸、单人、无遮挡（≤5MB、最长边≤1024、宽高比≤2）。")
     task_id = start_liveportrait(image_url, audio_url)
     result_json = poll_task(task_id)
-    remote_video_url = extract_remote_video_url(result_json)
-    if not remote_video_url:
-        raise DashScopeError("LivePortrait 成功但未拿到视频地址，请检查返回 JSON。")
-    print(f"[TIMING] LP 渲染完成 {time.time()-t2:.2f}s")
-
-    # 4) 后台/同步落盘（这里仍同步下载一次，若想更极致可改成线程后台）
     mp4_path = download_video(result_json, video_dir)
+    if mp4_path is None:
+        raise DashScopeError("LivePortrait 成功但未拿到视频地址，请检查返回 JSON。")
 
-    # 5) URL
+    # 4) 拼接可供前端访问的 URL（直接用 wav）
     tts_url = f"/static/tts/{wav_path.name}"
-    video_url = f"/static/video/{mp4_path.name}" if mp4_path else ""
-    video_stream_url = remote_video_url
-    return wav_path, mp4_path, tts_url, video_url, video_stream_url
+    video_url = f"/static/video/{mp4_path.name}"
+    return wav_path, mp4_path, tts_url, video_url
 
+# 可选：模块被直接运行时，执行一次预热
 if __name__ == "__main__":
-    warmup_tts()
+    try:
+        warmup_tts()
+    except Exception as e:
+        print("Warmup skipped:", e)
