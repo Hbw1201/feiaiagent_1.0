@@ -7,8 +7,9 @@
 - **智能对话**: 基于智谱AI大模型，支持自然语言交互
 - **语音识别**: 集成科大讯飞ASR，支持语音输入
 - **语音合成**: 集成科大讯飞TTS，提供语音播报
+- **数字人生成**: 集成阿里云LivePortrait + CosyVoice技术
 - **风险评估**: 自动生成肺癌早筛风险评估报告
-- **Web界面**: 简洁易用的Web操作界面
+- **Web界面**: 医疗主题风格，简洁易用的Web操作界面
 - **会话管理**: 支持多会话并发处理
 
 ## 🛠️ 技术架构
@@ -17,7 +18,8 @@
 - **AI模型**: 智谱AI (ZhipuAI)
 - **语音识别**: 科大讯飞ASR
 - **语音合成**: 科大讯飞TTS
-- **前端**: HTML + CSS + JavaScript
+- **数字人生成**: 阿里云LivePortrait + CosyVoice
+- **前端**: HTML + CSS + JavaScript (医疗主题风格)
 - **音频处理**: FFmpeg
 
 ## 📋 系统要求
@@ -52,6 +54,9 @@ ZHIPU_API_MODE=open_app_v3
 XFYUN_APPID=your_appid
 XFYUN_APIKEY=your_apikey
 XFYUN_APISECRET=your_apisecret
+
+# 阿里云数字人生成配置
+DASHSCOPE_API_KEY=sk-your-api-key-here
 
 # 可选配置
 LOG_LEVEL=INFO
@@ -130,12 +135,17 @@ feiaiagent_1.0/
 ├── zhipu_agent.py         # 智谱AI代理模块
 ├── xfyun_asr.py          # 科大讯飞语音识别
 ├── xfyun_tts.py          # 科大讯飞语音合成
+├── digital_human.py       # 数字人生成模块
+├── resource/              # 资源文件夹
+│   └── images/            # 图片资源
+│       └── avatar.jpg     # 数字人头像（必需）
 ├── static/                # 静态资源
 │   ├── index.html         # 主页面
-│   ├── style.css          # 样式文件
+│   ├── style.css          # 医疗主题样式
 │   ├── script.js          # 前端逻辑
 │   ├── beep.wav           # 提示音
-│   └── tts/               # TTS音频输出目录
+│   ├── tts/               # TTS音频输出目录
+│   └── video/             # 数字人视频输出目录
 ├── start_system.bat       # Windows启动脚本
 └── start_system.sh        # Linux/macOS启动脚本
 ```
@@ -149,6 +159,10 @@ feiaiagent_1.0/
 ### 科大讯飞配置
 - 需要申请科大讯飞开放平台账号
 - 创建语音识别和语音合成应用
+
+### 阿里云数字人生成配置
+- `DASHSCOPE_API_KEY`: 阿里云DashScope API密钥（以"sk-"开头）
+- `DIGITAL_HUMAN_IMAGE_PATH`: 数字人头像路径（可选，默认使用resource/images/avatar.jpg）
 
 ### 音频配置
 - `TTS_OUT_DIR`: TTS音频文件输出目录
@@ -168,7 +182,12 @@ feiaiagent_1.0/
    - 确认音频文件格式正确
    - 查看ASR模块日志
 
-3. **FFmpeg相关错误**
+3. **数字人生成失败**
+   - 检查阿里云DashScope API密钥
+   - 确认头像图片存在且符合要求（单人正脸，清晰，≤5MB）
+   - 查看数字人模块日志
+
+4. **FFmpeg相关错误**
    - 确认FFmpeg已正确安装
    - 检查FFMPEG_PATH环境变量
    - 验证FFmpeg版本兼容性
@@ -178,6 +197,36 @@ feiaiagent_1.0/
 - API调用状态
 - 语音处理进度
 - 错误和异常信息
+
+## 🖼️ 数字人头像要求
+
+### 图片规格
+- **格式**: JPG、PNG等常见格式
+- **分辨率**: 建议512x512到1024x1024像素
+- **文件大小**: ≤5MB
+- **质量**: 高清，无压缩伪影
+
+### 内容要求
+- ✅ **单人正脸**: 只包含一个人，正面朝向
+- ✅ **光线充足**: 避免过暗或过曝
+- ✅ **表情自然**: 微笑或中性表情
+- ✅ **背景简洁**: 避免复杂背景
+- ✅ **无遮挡**: 面部无口罩、眼镜等遮挡物
+- ✅ **清晰度高**: 避免模糊或像素化
+
+### 不推荐
+- ❌ 多人照片
+- ❌ 侧脸或低头照片
+- ❌ 光线不足的照片
+- ❌ 有遮挡的照片
+- ❌ 低分辨率照片
+- ❌ 艺术化处理的照片
+
+### 如何设置头像
+1. 准备符合要求的照片
+2. 重命名为 `avatar.jpg`
+3. 放在 `resource/images/` 文件夹中
+4. 重启应用程序
 
 ---
 

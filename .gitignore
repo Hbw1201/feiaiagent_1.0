@@ -46,7 +46,3 @@ resource/images/*.jpg
 resource/images/*.png
 resource/images/*.bmp
 resource/images/*.jpeg
-!resource/images/README.md
-
-# 但保留README文件
-!resource/README.md
