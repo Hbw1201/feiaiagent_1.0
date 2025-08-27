@@ -33,7 +33,10 @@ from websocket import WebSocketConnectionClosedException, WebSocketTimeoutExcept
 
 # ========= 基本配置 =========
 API_KEY = os.getenv("DASHSCOPE_API_KEY", "sk-d8f898e299f44dad8c6f83cc51020ed2")
-IMAGE_PATH = os.getenv("DIGITAL_HUMAN_IMAGE_PATH", r"C:\Users\Administrator\Pictures\Saved Pictures\R (1).jpg")#可以改，本地图片
+
+# 图片路径配置：优先使用环境变量，否则使用项目内默认图片
+DEFAULT_IMAGE_PATH = Path(__file__).parent / "resource" / "images" / "avatar.jpg"
+IMAGE_PATH = os.getenv("DIGITAL_HUMAN_IMAGE_PATH", str(DEFAULT_IMAGE_PATH))
 
 # CosyVoice TTS 参数
 TTS_MODEL = "cosyvoice-v2"
