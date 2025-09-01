@@ -86,7 +86,7 @@ chmod +x start_system.sh
 python app.py
 ```
 
-系统启动后，访问 `http://localhost:5000` 即可使用。
+系统启动后，访问 `http://localhost:8080` 即可使用。
 
 ## 📱 使用方法
 

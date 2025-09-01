@@ -81,12 +81,40 @@
       <audio id="ttsAudio" controls></audio>
     </div>
 
+    <!-- 报告管理区域 -->
+    <div class="reports-management" id="reportsManagement" style="display: none;">
+      <h3>📋 报告管理</h3>
+      <div class="reports-controls">
+        <button id="btnRefreshReports" class="secondary-btn">🔄 刷新报告列表</button>
+        <button id="btnCleanupReports" class="secondary-btn">🗑️ 清理旧报告</button>
+        <button id="btnHideReports" class="secondary-btn">📕 隐藏报告管理</button>
+      </div>
+      <div class="reports-stats" id="reportsStats">
+        <div class="stat-item">
+          <span class="stat-label">总报告数：</span>
+          <span class="stat-value" id="totalReports">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">总大小：</span>
+          <span class="stat-value" id="totalSize">0 MB</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">最新报告：</span>
+          <span class="stat-value" id="latestReport">无</span>
+        </div>
+      </div>
+      <div class="reports-list" id="reportsList">
+        <div class="loading">正在加载报告列表...</div>
+      </div>
+    </div>
+
     <div class="debug-info">
       <h3>🔍 调试信息</h3>
       <div id="debugText">系统就绪，等待开始...</div>
       <div style="margin-top: 15px;">
         <button id="btnTestReport" class="secondary-btn" onclick="testAssessmentReport()">🧪 测试评估报告显示</button>
         <button id="btnTestComplete" class="secondary-btn" onclick="testCompleteStatus()">🧪 测试完成状态</button>
+        <button id="btnShowReports" class="secondary-btn">📋 显示报告管理</button>
       </div>
     </div>
 

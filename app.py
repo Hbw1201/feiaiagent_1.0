@@ -8,8 +8,14 @@ from xfyun_asr import asr_transcribe_file
 from config import validate_config, TTS_OUT_DIR, FFMPEG_PATH, questions, questionnaire_reference
 
 # 数字人模块（生成 & 预热）
-# 注意：digital_human.py 需为“极速版”，其 generate_digital_human_assets 返回 5 个值
+# 注意：digital_human.py 需为"极速版"，其 generate_digital_human_assets 返回 5 个值
 from digital_human import generate_digital_human_assets, warmup_tts
+
+# 媒体文件清理模块
+from cleanup_media import cleanup_old_media_files, cleanup_by_session_id
+
+# 报告管理模块
+from report_manager import report_manager
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -99,6 +105,14 @@ def agent_start():
     data = request.get_json(force=True)
     session_id = data["session_id"]
 
+    # 在开始新对话前，清理上一次对话的音频和视频文件
+    try:
+        logger.info("开始清理上一次对话的媒体文件...")
+        audio_count, video_count = cleanup_old_media_files(static_root="static", keep_latest=0)
+        logger.info(f"清理完成: 删除了 {audio_count} 个音频文件和 {video_count} 个视频文件")
+    except Exception as e:
+        logger.warning(f"清理媒体文件时发生错误（继续执行）: {e}")
+
     try:
         logger.info(f"开始智谱AI对话，会话ID: {session_id}")
         ai_response, conversation_id = zhipu_conversation(
@@ -172,6 +186,38 @@ def agent_reply():
             question = ai_response
             is_complete = True
             final_session_id = conversation_id
+            
+            # 智谱AI模式：尝试从对话历史中提取用户信息并保存报告
+            try:
+                # 从智谱AI的回复中提取用户信息
+                user_info = extract_user_info_from_response(ai_response)
+                
+                # 如果无法提取用户信息，尝试使用默认信息
+                if not user_info:
+                    logger.warning("无法从智谱AI回复中提取用户信息，使用默认信息")
+                    user_info = {
+                        "姓名": "智谱AI用户",
+                        "性别(1男 2女)": "未知",
+                        "出生年份": "未知",
+                        "联系电话2(手机)": "无手机号",
+                        "联系电话1(住宅)": "无",
+                        "家庭地址": "无"
+                    }
+                
+                if user_info:
+                    saved_path = report_manager.save_report(ai_response, user_info, session_id)
+                    if saved_path:
+                        logger.info(f"智谱AI报告已保存: {saved_path}")
+                        # 同时保存JSON格式
+                        json_path = report_manager.save_report_json(ai_response, user_info, session_id)
+                        if json_path:
+                            logger.info(f"智谱AI JSON报告已保存: {json_path}")
+                    else:
+                        logger.warning("智谱AI报告保存失败")
+                else:
+                    logger.warning("无法从智谱AI回复中提取用户信息，跳过报告保存")
+            except Exception as e:
+                logger.error(f"保存智谱AI报告时发生错误: {e}")
         else:
             question = ai_response
             logger.info(f"智谱AI继续对话成功: {question}")
@@ -318,6 +364,14 @@ def local_questionnaire_start():
         data = request.get_json(force=True)
         session_id = data.get("session_id", str(int(time.time() * 1000)))
 
+        # 在开始新问卷前，清理上一次对话的音频和视频文件
+        try:
+            logger.info("开始清理上一次对话的媒体文件...")
+            audio_count, video_count = cleanup_old_media_files(static_root="static", keep_latest=0)
+            logger.info(f"清理完成: 删除了 {audio_count} 个音频文件和 {video_count} 个视频文件")
+        except Exception as e:
+            logger.warning(f"清理媒体文件时发生错误（继续执行）: {e}")
+
         if not hasattr(app, 'questionnaire_sessions'):
             app.questionnaire_sessions = {}
 
@@ -379,7 +433,21 @@ def local_questionnaire_reply():
             session["completed"] = True
             session["report"] = report
 
-            # 报告很长 -> 先做“摘要快视频”（6~8秒）
+            # 保存报告到文件
+            try:
+                saved_path = report_manager.save_report(report, session["answers"], session_id)
+                if saved_path:
+                    logger.info(f"本地问卷报告已保存: {saved_path}")
+                    # 同时保存JSON格式
+                    json_path = report_manager.save_report_json(report, session["answers"], session_id)
+                    if json_path:
+                        logger.info(f"本地问卷JSON报告已保存: {json_path}")
+                else:
+                    logger.warning("本地问卷报告保存失败")
+            except Exception as e:
+                logger.error(f"保存本地问卷报告时发生错误: {e}")
+
+            # 报告很长 -> 先做"摘要快视频"（6~8秒）
             first_seg = shorten_for_avatar(report)
             try:
                 wav_path, mp4_path, tts_url, video_url, video_stream_url = generate_digital_human_assets(
@@ -481,6 +549,168 @@ def get_question_info(question_index):
         "total_questions": len(questions)
     }
 
+def extract_user_info_from_response(response_text):
+    """
+    从智谱AI的回复中提取用户信息
+    
+    Args:
+        response_text: 智谱AI的回复文本
+        
+    Returns:
+        用户信息字典，如果无法提取则返回None
+    """
+    import re
+    
+    user_info = {}
+    
+    try:
+        # 清理文本，移除多余的空白字符
+        cleaned_text = re.sub(r'\s+', ' ', response_text.strip())
+        logger.info(f"开始提取用户信息，文本长度: {len(cleaned_text)}")
+        logger.info(f"文本预览: {cleaned_text[:200]}...")
+        
+        # 提取姓名 - 增强模式匹配
+        name_patterns = [
+            r'姓名[：:]\s*([^\n\r，,。！!？?；;]+)',
+            r'用户姓名[：:]\s*([^\n\r，,。！!？?；;]+)',
+            r'患者姓名[：:]\s*([^\n\r，,。！!？?；;]+)',
+            r'姓名\s*([^\n\r，,。！!？?；;：:]+)',
+            r'用户\s*([^\n\r，,。！!？?；;：:]+)',
+            r'患者\s*([^\n\r，,。！!？?；;：:]+)',
+            # 匹配常见的中文姓名格式
+            r'([\u4e00-\u9fa5]{2,4})\s*[，,。！!？?；;]',
+            # 匹配"我是XXX"格式
+            r'我是\s*([\u4e00-\u9fa5]{2,4})',
+            r'我叫\s*([\u4e00-\u9fa5]{2,4})',
+            # 匹配"XXX，男/女"格式
+            r'([\u4e00-\u9fa5]{2,4})\s*[,，]\s*[男女]',
+        ]
+        
+        for pattern in name_patterns:
+            match = re.search(pattern, cleaned_text)
+            if match:
+                name = match.group(1).strip()
+                # 过滤掉明显不是姓名的内容
+                if (len(name) >= 2 and len(name) <= 4 and 
+                    not any(keyword in name for keyword in ['年龄', '性别', '出生', '电话', '手机', '地址', '职业', '文化', '吸烟', '被动', '厨房', '职业', '肿瘤', '家族', '检查', '支气管', '肺气肿', '肺结核', '阻塞', '纤维化', '消瘦', '干咳', '感觉'])):
+                    user_info["姓名"] = name
+                    logger.info(f"提取到姓名: {name}")
+                    break
+        
+        # 提取性别
+        gender_patterns = [
+            r'性别[：:]\s*([男女12])',
+            r'([男女])性',
+            r'([男女])\s*[,，]',
+            r'([12])\s*[,，]',
+            # 匹配"男/女，XX岁"格式
+            r'([男女])\s*[,，]\s*\d+岁',
+            # 匹配"我是男/女性"格式
+            r'我是\s*([男女])性',
+        ]
+        
+        for pattern in gender_patterns:
+            match = re.search(pattern, cleaned_text)
+            if match:
+                gender = match.group(1).strip()
+                if gender in ['1', '男']:
+                    user_info["性别(1男 2女)"] = "1"
+                    logger.info("提取到性别: 男")
+                elif gender in ['2', '女']:
+                    user_info["性别(1男 2女)"] = "2"
+                    logger.info("提取到性别: 女")
+                break
+        
+        # 提取年龄/出生年份
+        age_patterns = [
+            r'年龄[：:]\s*(\d+)',
+            r'(\d+)岁',
+            r'出生年份[：:]\s*(\d{4})',
+            r'(\d{4})年出生',
+            r'(\d{4})年',
+            # 匹配"XX岁，男/女"格式
+            r'(\d+)岁\s*[,，]\s*[男女]',
+        ]
+        
+        for pattern in age_patterns:
+            match = re.search(pattern, cleaned_text)
+            if match:
+                age_or_year = match.group(1).strip()
+                if len(age_or_year) == 4 and 1900 <= int(age_or_year) <= 2024:  # 出生年份
+                    user_info["出生年份"] = age_or_year
+                    logger.info(f"提取到出生年份: {age_or_year}")
+                elif age_or_year.isdigit() and 1 <= int(age_or_year) <= 120:  # 年龄
+                    try:
+                        age = int(age_or_year)
+                        current_year = 2024  # 可以根据需要调整
+                        birth_year = current_year - age
+                        user_info["出生年份"] = str(birth_year)
+                        logger.info(f"提取到年龄: {age}岁，转换为出生年份: {birth_year}")
+                    except:
+                        pass
+                break
+        
+        # 提取手机号
+        phone_patterns = [
+            r'手机[号]?[：:]\s*(\d{11})',
+            r'联系电话[：:]\s*(\d{11})',
+            r'电话[：:]\s*(\d{11})',
+            r'手机\s*(\d{11})',
+            r'电话\s*(\d{11})',
+            # 匹配纯11位数字（手机号格式）
+            r'(\d{11})',
+        ]
+        
+        for pattern in phone_patterns:
+            match = re.search(pattern, cleaned_text)
+            if match:
+                phone = match.group(1).strip()
+                if len(phone) == 11 and phone.startswith(('1')):
+                    user_info["联系电话2(手机)"] = phone
+                    logger.info(f"提取到手机号: {phone}")
+                    break
+        
+        # 提取家庭地址
+        address_patterns = [
+            r'家庭地址[：:]\s*([^\n\r，,。！!？?；;]+)',
+            r'地址[：:]\s*([^\n\r，,。！!？?；;]+)',
+            r'住址[：:]\s*([^\n\r，,。！!？?；;]+)',
+        ]
+        
+        for pattern in address_patterns:
+            match = re.search(pattern, cleaned_text)
+            if match:
+                address = match.group(1).strip()
+                if len(address) > 5:  # 地址应该比较长
+                    user_info["家庭地址"] = address
+                    logger.info(f"提取到家庭地址: {address}")
+                    break
+        
+        # 如果至少提取到了姓名，就认为成功
+        if user_info.get("姓名"):
+            # 为缺失的字段设置默认值
+            if "性别(1男 2女)" not in user_info:
+                user_info["性别(1男 2女)"] = "未知"
+            if "出生年份" not in user_info:
+                user_info["出生年份"] = "未知"
+            if "联系电话2(手机)" not in user_info:
+                user_info["联系电话2(手机)"] = "无手机号"
+            if "联系电话1(住宅)" not in user_info:
+                user_info["联系电话1(住宅)"] = "无"
+            if "家庭地址" not in user_info:
+                user_info["家庭地址"] = "无"
+            
+            logger.info(f"从智谱AI回复中提取到用户信息: {user_info}")
+            return user_info
+        else:
+            logger.warning("无法从智谱AI回复中提取到用户姓名")
+            logger.warning(f"原始文本内容: {cleaned_text[:500]}...")
+            return None
+            
+    except Exception as e:
+        logger.error(f"提取用户信息时发生错误: {e}")
+        return None
+
 def generate_assessment_report(answers):
     report = "肺癌早筛风险评估报告\n\n" + "=" * 50 + "\n\n"
     report += "【基本信息】\n"
@@ -571,6 +801,193 @@ def debug_zhipu():
     except Exception as e:
         logger.error(f"智谱AI调试失败: {e}")
         return jsonify({"success": False, "error": str(e), "error_type": type(e).__name__}), 500
+
+@app.route("/api/cleanup/media", methods=["POST"])
+def cleanup_media():
+    """手动清理媒体文件API"""
+    try:
+        data = request.get_json(force=True) if request.is_json else {}
+        keep_latest = data.get("keep_latest", 0)  # 保留最新的文件数量
+        max_age_hours = data.get("max_age_hours", None)  # 按年龄清理
+        
+        if max_age_hours:
+            # 按年龄清理
+            from cleanup_media import cleanup_old_files_by_age
+            audio_count, video_count = cleanup_old_files_by_age(
+                static_root="static", 
+                max_age_hours=max_age_hours
+            )
+            cleanup_type = f"按年龄清理（超过{max_age_hours}小时）"
+        else:
+            # 按数量清理
+            audio_count, video_count = cleanup_old_media_files(
+                static_root="static", 
+                keep_latest=keep_latest
+            )
+            cleanup_type = f"按数量清理（保留最新{keep_latest}个）"
+        
+        logger.info(f"手动清理完成: {cleanup_type}, 删除了 {audio_count} 个音频文件和 {video_count} 个视频文件")
+        
+        return jsonify({
+            "success": True,
+            "cleanup_type": cleanup_type,
+            "deleted_audio_count": audio_count,
+            "deleted_video_count": video_count,
+            "message": f"清理完成: 删除了 {audio_count} 个音频文件和 {video_count} 个视频文件"
+        })
+    except Exception as e:
+        logger.error(f"手动清理媒体文件失败: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/media/info", methods=["GET"])
+def get_media_info():
+    """获取媒体文件信息API"""
+    try:
+        from cleanup_media import get_media_files_info
+        info = get_media_files_info(static_root="static")
+        
+        # 格式化文件大小
+        def format_size(size_bytes):
+            if size_bytes < 1024:
+                return f"{size_bytes} B"
+            elif size_bytes < 1024 * 1024:
+                return f"{size_bytes / 1024:.1f} KB"
+            else:
+                return f"{size_bytes / (1024 * 1024):.1f} MB"
+        
+        # 格式化修改时间
+        def format_time(timestamp):
+            import datetime
+            return datetime.datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
+        
+        # 处理音频文件信息
+        audio_files = []
+        for file_info in info["audio_files"]:
+            audio_files.append({
+                "name": file_info["name"],
+                "size": format_size(file_info["size"]),
+                "modified": format_time(file_info["modified"])
+            })
+        
+        # 处理视频文件信息
+        video_files = []
+        for file_info in info["video_files"]:
+            video_files.append({
+                "name": file_info["name"],
+                "size": format_size(file_info["size"]),
+                "modified": format_time(file_info["modified"])
+            })
+        
+        return jsonify({
+            "success": True,
+            "audio_count": info["audio_count"],
+            "video_count": info["video_count"],
+            "total_audio_size": format_size(info["total_audio_size"]),
+            "total_video_size": format_size(info["total_video_size"]),
+            "audio_files": audio_files,
+            "video_files": video_files
+        })
+    except Exception as e:
+        logger.error(f"获取媒体文件信息失败: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/reports/list", methods=["GET"])
+def get_reports_list():
+    """获取报告列表API"""
+    try:
+        reports = report_manager.get_reports_list()
+        
+        # 格式化文件大小
+        def format_size(size_bytes):
+            if size_bytes < 1024:
+                return f"{size_bytes} B"
+            elif size_bytes < 1024 * 1024:
+                return f"{size_bytes / 1024:.1f} KB"
+            else:
+                return f"{size_bytes / (1024 * 1024):.1f} MB"
+        
+        # 处理报告文件信息
+        formatted_reports = []
+        for report in reports:
+            formatted_reports.append({
+                "filename": report["filename"],
+                "size": format_size(report["size"]),
+                "created": report["created"],
+                "modified": report["modified"]
+            })
+        
+        return jsonify({
+            "success": True,
+            "reports": formatted_reports,
+            "total_count": len(formatted_reports)
+        })
+    except Exception as e:
+        logger.error(f"获取报告列表失败: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/reports/<filename>", methods=["GET"])
+def get_report_content(filename):
+    """获取指定报告内容API"""
+    try:
+        content = report_manager.get_report_content(filename)
+        if content:
+            return jsonify({
+                "success": True,
+                "filename": filename,
+                "content": content
+            })
+        else:
+            return jsonify({"success": False, "error": "报告文件不存在"}), 404
+    except Exception as e:
+        logger.error(f"获取报告内容失败: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/reports/<filename>", methods=["DELETE"])
+def delete_report(filename):
+    """删除指定报告API"""
+    try:
+        success = report_manager.delete_report(filename)
+        if success:
+            return jsonify({
+                "success": True,
+                "message": f"报告 {filename} 删除成功"
+            })
+        else:
+            return jsonify({"success": False, "error": "报告文件不存在"}), 404
+    except Exception as e:
+        logger.error(f"删除报告失败: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/reports/stats", methods=["GET"])
+def get_reports_stats():
+    """获取报告统计信息API"""
+    try:
+        stats = report_manager.get_reports_stats()
+        return jsonify({
+            "success": True,
+            "stats": stats
+        })
+    except Exception as e:
+        logger.error(f"获取报告统计失败: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/reports/cleanup", methods=["POST"])
+def cleanup_old_reports():
+    """清理旧报告API"""
+    try:
+        data = request.get_json(force=True) if request.is_json else {}
+        days = data.get("days", 30)  # 默认保留30天
+        
+        deleted_count = report_manager.cleanup_old_reports(days)
+        
+        return jsonify({
+            "success": True,
+            "deleted_count": deleted_count,
+            "message": f"清理完成，删除了 {deleted_count} 个超过 {days} 天的旧报告"
+        })
+    except Exception as e:
+        logger.error(f"清理旧报告失败: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
 
 @app.errorhandler(Exception)
 def handle_exception(e):

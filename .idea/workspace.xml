@@ -5,14 +5,172 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="10d4120e-a175-4dd1-8703-0c5263f0cd21" name="更改" comment="">
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/resource/README.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/resource/config_example.env" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/resource/images/README.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/app.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/static/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/static/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/script.js" beforeDir="false" afterPath="$PROJECT_DIR$/static/script.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/static/style.css" beforeDir="false" afterPath="$PROJECT_DIR$/static/style.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/tts/1960563492180344832_1756269738.wav" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/tts/1960587877050212352_1756275552.wav" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/tts/1960588042922233856_1756275591.wav" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/tts/1960588042922233856_1756275617.wav" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/tts/1960588042922233856_1756275637.wav" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/tts/1960588042922233856_1756275659.wav" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/tts/1960588409064120320_1756275679.wav" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/tts/1960588409064120320_1756275720.wav" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/tts/1960588409064120320_1756275769.wav" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/tts/1960588409064120320_1756275818.wav" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/tts/1960588409064120320_1756275861.wav" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/tts/1960588409064120320_1756275907.wav" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/tts/1960588409064120320_1756275953.wav" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/tts/1960588409064120320_1756276002.wav" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/tts/1960588409064120320_1756276058.wav" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/tts/1960588409064120320_1756276122.wav" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/tts/1960588409064120320_1756276180.wav" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/tts/1960588409064120320_1756276224.wav" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/tts/1960588409064120320_1756276272.wav" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/tts/1960588409064120320_1756276319.wav" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/tts/1960588409064120320_1756276377.wav" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/tts/1960588409064120320_1756276440.wav" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/tts/1960588409064120320_1756276523.wav" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/tts/1960588409064120320_1756276581.wav" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/tts/1960594729360031744_1756277186.wav" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/tts/1960595104901251072_1756277275.wav" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/tts/1960595104901251072_1756277310.wav" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755747666.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755747740.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755747792.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755747803.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755758858.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755758909.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755758938.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755758959.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755758978.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755759737.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755759792.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755759846.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755759919.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755761619.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755761667.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755761768.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755761818.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755761874.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755761970.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755762028.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755762104.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755762186.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755762250.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755762304.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755762367.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755762425.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755762538.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755762631.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755762762.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755762810.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755762868.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755762947.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755763009.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755763060.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755763139.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755763206.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755763271.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755763332.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755763404.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755763519.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755763593.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755763695.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755763770.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755763855.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755763915.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755763958.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755765625.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755765681.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755765747.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755765804.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755765859.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755765911.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755765966.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755766040.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755766090.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755766151.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755766216.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755766290.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755766400.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755766471.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755766542.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755766637.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755766725.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755766840.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755766932.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755786889.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755786972.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755786991.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755787044.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755787142.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755787200.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755787270.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755787344.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1755830894.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756093353.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756096288.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756096331.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756096662.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756096709.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756096761.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756096811.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756096858.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756098340.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756098385.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756100045.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756100086.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756100128.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756104988.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756105031.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756105076.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756105132.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756105179.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756105235.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756105285.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756105342.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756105388.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756105433.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756105488.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756105535.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756105591.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756105652.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756105725.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756105789.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756105849.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756105897.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756269760.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756275589.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756275612.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756275636.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756275660.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756275681.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756275699.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756275747.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756275796.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756275843.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756275884.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756275932.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756275975.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756276025.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756276078.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756276151.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756276205.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756276250.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756276294.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756276352.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756276416.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756276494.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756276547.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756276610.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756277212.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/video/liveportrait_1756277292.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/test.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/zhipu_agent.py" beforeDir="false" afterPath="$PROJECT_DIR$/zhipu_agent.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -78,7 +236,10 @@
       <workItem from="1756267961549" duration="697000" />
       <workItem from="1756268702962" duration="285000" />
       <workItem from="1756269788076" duration="1108000" />
-      <workItem from="1756275537077" duration="941000" />
+      <workItem from="1756275537077" duration="1342000" />
+      <workItem from="1756452555271" duration="1596000" />
+      <workItem from="1756478804780" duration="553000" />
+      <workItem from="1756709689530" duration="288000" />
     </task>
     <servers />
   </component>
@@ -86,6 +247,6 @@
     <option name="version" value="3" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/app_py$app.coverage" NAME="app 覆盖结果" MODIFIED="1756275540034" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/app_py$app.coverage" NAME="app 覆盖结果" MODIFIED="1756479368704" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>

@@ -129,10 +129,55 @@ def call_zhipu(app_id: str, api_key: str, prompt: str, conversation_id: str):
                             print(f"[DEBUG] 正则匹配到的中文文本数量: {len(chinese_texts)}")
                             for i, text in enumerate(chinese_texts):
                                 print(f"[DEBUG] 中文文本{i+1}: {text[:100]}...")
-                                if len(text) > 20 and any(keyword in text for keyword in ["问题", "报告", "评估", "姓名", "年龄", "症状"]):
+                                if len(text) > 20 and any(keyword in text for keyword in ["问题", "报告", "评估", "姓名", "年龄", "症状", "您好", "请问", "谢谢", "回答", "信息"]):
                                     extracted_text = text
                                     print(f"[DEBUG] 方式3提取到文本: {extracted_text[:100]}...")
                                     break
+                        
+                        # 方式4：尝试从choice的message.content中直接提取文本
+                        if not extracted_text and "choices" in data and len(data["choices"]) > 0:
+                            choice = data["choices"][0]
+                            if "message" in choice and "content" in choice["message"]:
+                                message_content = choice["message"]["content"]
+                                if isinstance(message_content, str) and len(message_content.strip()) > 10:
+                                    extracted_text = message_content.strip()
+                                    print(f"[DEBUG] 方式4从message.content提取到文本: {extracted_text[:100]}...")
+                                elif isinstance(message_content, list):
+                                    # 处理content为列表的情况
+                                    for item in message_content:
+                                        if isinstance(item, dict) and "text" in item:
+                                            text_content = item["text"]
+                                            if isinstance(text_content, str) and len(text_content.strip()) > 10:
+                                                extracted_text = text_content.strip()
+                                                print(f"[DEBUG] 方式4从message.content[].text提取到文本: {extracted_text[:100]}...")
+                                                break
+                        
+                        # 方式5：尝试从output字段提取
+                        if not extracted_text and "output" in data:
+                            output = data["output"]
+                            if isinstance(output, dict):
+                                # 递归搜索output中的文本内容
+                                def find_text_in_output(obj, depth=0):
+                                    if depth > 3:  # 防止过深递归
+                                        return None
+                                    if isinstance(obj, str) and len(obj.strip()) > 10:
+                                        return obj.strip()
+                                    elif isinstance(obj, dict):
+                                        for key, value in obj.items():
+                                            result = find_text_in_output(value, depth + 1)
+                                            if result:
+                                                return result
+                                    elif isinstance(obj, list):
+                                        for item in obj:
+                                            result = find_text_in_output(item, depth + 1)
+                                            if result:
+                                                return result
+                                    return None
+                                
+                                found_text = find_text_in_output(output)
+                                if found_text:
+                                    extracted_text = found_text
+                                    print(f"[DEBUG] 方式5从output提取到文本: {extracted_text[:100]}...")
                         
                         if extracted_text:
                             print(f"[DEBUG] ✅ 成功提取到文本内容")
@@ -164,7 +209,25 @@ def call_zhipu(app_id: str, api_key: str, prompt: str, conversation_id: str):
                         return f"Agent流程错误：用户回答为空，请重新回答刚才的问题", conversation_id
                     else:
                         return f"Agent流程错误：{error_text}，请重新回答刚才的问题", conversation_id
+                
+                # 尝试从choice的其他字段提取文本
+                if "message" in choice:
+                    message = choice["message"]
+                    if "content" in message:
+                        content = message["content"]
+                        if isinstance(content, str) and len(content.strip()) > 10:
+                            print(f"[DEBUG] 从choice.message.content提取到文本: {content[:100]}...")
+                            return content.strip(), conversation_id
+                        elif isinstance(content, list):
+                            for item in content:
+                                if isinstance(item, dict) and "text" in item:
+                                    text = item["text"]
+                                    if isinstance(text, str) and len(text.strip()) > 10:
+                                        print(f"[DEBUG] 从choice.message.content[].text提取到文本: {text[:100]}...")
+                                        return text.strip(), conversation_id
             
+            # 最后尝试：打印完整的响应结构用于调试
+            print(f"[DEBUG] 完整响应结构: {json.dumps(data, ensure_ascii=False, indent=2)}")
             return "未获取到有效回复", conversation_id
         else:
             print(f"[DEBUG] HTTP错误: {response.status_code}")

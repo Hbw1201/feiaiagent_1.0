@@ -47,6 +47,13 @@ const btnRestart = document.getElementById("btnRestart");
 const ttsIndicator = document.getElementById("ttsIndicator");
 const ttsStatus = document.getElementById("ttsStatus");
 
+// 报告管理相关元素
+const reportsManagementEl = document.getElementById("reportsManagement");
+const reportsListEl = document.getElementById("reportsList");
+const totalReportsEl = document.getElementById("totalReports");
+const totalSizeEl = document.getElementById("totalSize");
+const latestReportEl = document.getElementById("latestReport");
+
 let conversationHistory = [];
 
 function log(message) {
@@ -337,11 +344,48 @@ async function fetchSystemStatus() {
     }
 }
 
+async function cleanupMediaFiles() {
+    try {
+        log("🧹 开始清理旧的音频和视频文件...");
+        const response = await fetch('/api/cleanup', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            log(`✅ 清理完成: ${data.message}`);
+            if (data.tts_cleaned > 0 || data.video_cleaned > 0) {
+                log(`📁 删除了 ${data.tts_cleaned} 个音频文件, ${data.video_cleaned} 个视频文件`);
+            } else {
+                log("📁 没有找到需要清理的文件");
+            }
+        } else {
+            log(`⚠️ 清理失败: ${data.error}`);
+        }
+    } catch (error) {
+        log(`❌ 清理媒体文件失败: ${error.message}`);
+        // 清理失败不应该阻止对话开始，只记录错误
+    }
+}
+
 document.addEventListener("DOMContentLoaded", fetchSystemStatus);
 
 async function startConversation() {
   try {
     log("开始启动智谱AI对话...");
+    statusEl.textContent = "状态：正在清理旧文件...";
+
+    // 先清理旧的音频和视频文件
+    await cleanupMediaFiles();
+
     statusEl.textContent = "状态：正在启动智谱AI对话...";
 
     hideAssessmentReport();
@@ -394,6 +438,11 @@ async function startConversation() {
 async function startLocalQuestionnaire() {
   try {
     log("开始启动本地问卷...");
+    statusEl.textContent = "状态：正在清理旧文件...";
+
+    // 先清理旧的音频和视频文件
+    await cleanupMediaFiles();
+
     statusEl.textContent = "状态：正在启动本地问卷...";
 
     hideAssessmentReport();
@@ -1044,6 +1093,12 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById("btnRestart").addEventListener("click", restartConversation);
   document.getElementById("btnExpandHistory").addEventListener("click", toggleHistory);
   document.getElementById("btnCollapseHistory").addEventListener("click", toggleHistory);
+  
+  // 报告管理按钮事件监听器
+  document.getElementById("btnShowReports").addEventListener("click", showReportsManagement);
+  document.getElementById("btnRefreshReports").addEventListener("click", loadReportsList);
+  document.getElementById("btnCleanupReports").addEventListener("click", cleanupOldReports);
+  document.getElementById("btnHideReports").addEventListener("click", hideReportsManagement);
 
 
 
@@ -1165,4 +1220,246 @@ function testCompleteStatus() {
 
   log(`✅ 模拟完成状态处理完成`);
   log(`🧪 测试完成`);
+}
+
+// ========== 报告管理功能 ==========
+
+// 显示报告管理区域
+function showReportsManagement() {
+  reportsManagementEl.style.display = "block";
+  log("📋 显示报告管理区域");
+  loadReportsList();
+}
+
+// 隐藏报告管理区域
+function hideReportsManagement() {
+  reportsManagementEl.style.display = "none";
+  log("📕 隐藏报告管理区域");
+}
+
+// 加载报告列表
+async function loadReportsList() {
+  try {
+    log("📋 开始加载报告列表...");
+    reportsListEl.innerHTML = '<div class="loading">正在加载报告列表...</div>';
+    
+    const response = await fetch('/api/reports/list');
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      log(`✅ 成功加载报告列表，共 ${data.total_count} 个报告`);
+      displayReportsList(data.reports);
+      await loadReportsStats();
+    } else {
+      throw new Error(data.error || "加载报告列表失败");
+    }
+  } catch (error) {
+    log(`❌ 加载报告列表失败: ${error.message}`);
+    reportsListEl.innerHTML = `
+      <div class="error-message">
+        <p>❌ 加载报告列表失败: ${error.message}</p>
+        <button onclick="loadReportsList()" class="secondary-btn">🔄 重试</button>
+      </div>
+    `;
+  }
+}
+
+// 显示报告列表
+function displayReportsList(reports) {
+  if (reports.length === 0) {
+    reportsListEl.innerHTML = `
+      <div class="empty-message">
+        <p>📄 暂无报告文件</p>
+        <p>完成问卷后会自动生成报告</p>
+      </div>
+    `;
+    return;
+  }
+  
+  const reportsHtml = reports.map(report => `
+    <div class="report-item">
+      <div class="report-header">
+        <div class="report-filename">${report.filename}</div>
+        <div class="report-actions">
+          <button class="btn-view" onclick="viewReport('${report.filename}')">👁️ 查看</button>
+          <button class="btn-delete" onclick="deleteReport('${report.filename}')">🗑️ 删除</button>
+        </div>
+      </div>
+      <div class="report-info">
+        <span>📅 ${report.created}</span>
+        <span>📏 ${report.size}</span>
+        <span>🔄 ${report.modified}</span>
+      </div>
+    </div>
+  `).join('');
+  
+  reportsListEl.innerHTML = reportsHtml;
+}
+
+// 加载报告统计信息
+async function loadReportsStats() {
+  try {
+    const response = await fetch('/api/reports/stats');
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      const stats = data.stats;
+      totalReportsEl.textContent = stats.total_reports;
+      totalSizeEl.textContent = `${stats.total_size_mb} MB`;
+      latestReportEl.textContent = stats.latest_report || "无";
+      log(`📊 报告统计信息已更新: ${stats.total_reports} 个报告, ${stats.total_size_mb} MB`);
+    }
+  } catch (error) {
+    log(`⚠️ 加载报告统计信息失败: ${error.message}`);
+  }
+}
+
+// 查看报告内容
+async function viewReport(filename) {
+  try {
+    log(`👁️ 开始查看报告: ${filename}`);
+    
+    const response = await fetch(`/api/reports/${filename}`);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      showReportModal(filename, data.content);
+      log(`✅ 成功加载报告内容: ${filename}`);
+    } else {
+      throw new Error(data.error || "加载报告内容失败");
+    }
+  } catch (error) {
+    log(`❌ 查看报告失败: ${error.message}`);
+    alert(`查看报告失败: ${error.message}`);
+  }
+}
+
+// 显示报告内容模态框
+function showReportModal(filename, content) {
+  // 创建模态框
+  const modal = document.createElement('div');
+  modal.className = 'report-content-modal';
+  modal.innerHTML = `
+    <div class="report-modal-content">
+      <div class="report-modal-header">
+        <div class="report-modal-title">📄 ${filename}</div>
+        <button class="btn-close-modal" onclick="closeReportModal()">✕ 关闭</button>
+      </div>
+      <div class="report-modal-body">${content}</div>
+    </div>
+  `;
+  
+  // 添加到页面
+  document.body.appendChild(modal);
+  
+  // 点击背景关闭
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      closeReportModal();
+    }
+  });
+  
+  // ESC键关闭
+  const handleEsc = (e) => {
+    if (e.key === 'Escape') {
+      closeReportModal();
+      document.removeEventListener('keydown', handleEsc);
+    }
+  };
+  document.addEventListener('keydown', handleEsc);
+}
+
+// 关闭报告内容模态框
+function closeReportModal() {
+  const modal = document.querySelector('.report-content-modal');
+  if (modal) {
+    modal.remove();
+    log("📕 关闭报告内容模态框");
+  }
+}
+
+// 删除报告
+async function deleteReport(filename) {
+  if (!confirm(`确定要删除报告 "${filename}" 吗？此操作不可撤销。`)) {
+    return;
+  }
+  
+  try {
+    log(`🗑️ 开始删除报告: ${filename}`);
+    
+    const response = await fetch(`/api/reports/${filename}`, {
+      method: 'DELETE'
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      log(`✅ 成功删除报告: ${filename}`);
+      // 重新加载报告列表
+      await loadReportsList();
+    } else {
+      throw new Error(data.error || "删除报告失败");
+    }
+  } catch (error) {
+    log(`❌ 删除报告失败: ${error.message}`);
+    alert(`删除报告失败: ${error.message}`);
+  }
+}
+
+// 清理旧报告
+async function cleanupOldReports() {
+  const days = prompt("请输入要保留的天数（默认30天）:", "30");
+  if (days === null) return;
+  
+  const daysNum = parseInt(days);
+  if (isNaN(daysNum) || daysNum < 1) {
+    alert("请输入有效的天数（大于0的整数）");
+    return;
+  }
+  
+  try {
+    log(`🗑️ 开始清理超过 ${daysNum} 天的旧报告...`);
+    
+    const response = await fetch('/api/reports/cleanup', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ days: daysNum })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      log(`✅ 清理完成: ${data.message}`);
+      alert(`清理完成: ${data.message}`);
+      // 重新加载报告列表
+      await loadReportsList();
+    } else {
+      throw new Error(data.error || "清理报告失败");
+    }
+  } catch (error) {
+    log(`❌ 清理报告失败: ${error.message}`);
+    alert(`清理报告失败: ${error.message}`);
+  }
 }
