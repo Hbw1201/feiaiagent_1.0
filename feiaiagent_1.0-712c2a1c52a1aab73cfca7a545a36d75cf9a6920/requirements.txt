@@ -1,0 +1,7 @@
+requests>=2.25.0
+python-dotenv>=0.19.0
+flask
+flask-cors
+websocket-client
+Pillow>=9.0.0
+
