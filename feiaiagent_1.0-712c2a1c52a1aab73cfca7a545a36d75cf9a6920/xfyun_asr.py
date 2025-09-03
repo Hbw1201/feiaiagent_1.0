@@ -17,7 +17,33 @@ XFYUN_APIKEY    = os.getenv("XFYUN_APIKEY")
 XFYUN_APISECRET = os.getenv("XFYUN_APISECRET")
 
 def validate_asr_config():
-    """验证ASR配置是否完整"""
+    """验证ASR配置是否完整（运行时刷新，支持从 config.py 回退注入）"""
+    global XFYUN_APPID, XFYUN_APIKEY, XFYUN_APISECRET
+
+    # 优先读取最新环境变量
+    appid = os.getenv("XFYUN_APPID")
+    apikey = os.getenv("XFYUN_APIKEY")
+    apisecret = os.getenv("XFYUN_APISECRET")
+
+    # 若环境变量缺失，尝试从 config.py 中导入默认值并注入到环境
+    if not (appid and apikey and apisecret):
+        try:
+            from config import XFYUN_APPID as CFG_APPID, XFYUN_APIKEY as CFG_APIKEY, XFYUN_APISECRET as CFG_APISECRET
+            appid = appid or CFG_APPID
+            apikey = apikey or CFG_APIKEY
+            apisecret = apisecret or CFG_APISECRET
+            if appid:    os.environ["XFYUN_APPID"] = appid
+            if apikey:   os.environ["XFYUN_APIKEY"] = apikey
+            if apisecret:os.environ["XFYUN_APISECRET"] = apisecret
+        except Exception:
+            # 如果无法导入，也继续用现有值判定
+            pass
+
+    # 同步回模块级变量，供后续使用
+    XFYUN_APPID = appid
+    XFYUN_APIKEY = apikey
+    XFYUN_APISECRET = apisecret
+
     missing = []
     if not XFYUN_APPID:     missing.append("XFYUN_APPID")
     if not XFYUN_APIKEY:    missing.append("XFYUN_APIKEY")
