@@ -1,0 +1,18 @@
+# Minimal requirements - only essential missing packages
+# Core packages that are already installed: requests, Flask, PyYAML, redis, SQLAlchemy
+
+# Data processing (if not available)
+pandas
+numpy
+
+# Async support
+aiohttp
+
+# Environment management
+python-dotenv
+
+# Data validation
+pydantic
+
+# Testing
+pytest

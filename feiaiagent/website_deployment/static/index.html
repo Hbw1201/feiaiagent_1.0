@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>肺癌早筛智能体</title>
+  <link rel="stylesheet" href="/static/style.css?v=1.1"/>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>肺癌早筛智能体</h1>
+
+    <div id="status">状态：未开始</div>
+    
+    <div class="controls">
+      <button id="btnStart">开始对话</button>
+      <button id="btnStartLocal" class="local-btn">📋 本地问卷</button>
+      <button id="btnStartMeta" class="local-btn">🧠 MetaGPT问卷</button>
+      <button id="btnSwitchToAgent" class="switch-btn">🤖 切换到智谱Agent</button>
+      <button id="btnMetaInit" class="secondary-btn">🛠️ 初始化MetaGPT</button>
+      <button id="btnMetaDemo" class="secondary-btn">🎯 MetaGPT演示</button>
+      <button id="btnRec" disabled style="display: none;">开始录音</button>
+      <button id="btnStop" disabled style="display: none;">停止录音</button>
+      <button id="btnRestart" class="secondary-btn" style="display: none;">重新开始</button>
+    </div>
+
+    <div class="recording-indicator" id="recordingIndicator" style="display: none;">
+      <div class="recording-dot"></div>
+      <span>录音中...</span>
+      <div class="volume-visualizer" id="volumeVisualizer">
+        <div class="volume-bar"></div>
+        <div class="volume-bar"></div>
+        <div class="volume-bar"></div>
+        <div class="volume-bar"></div>
+        <div class="volume-bar"></div>
+      </div>
+    </div>
+
+    <div class="tts-indicator" id="ttsIndicator" style="display: none;">
+      <div class="tts-icon">🔊</div>
+      <span id="ttsStatus">正在播放问题语音...</span>
+    </div>
+
+    <div class="qa">
+      <div><b>问题：</b><span id="questionText">（等待开始）</span></div>
+      <div><b>我的回答：</b><span id="answerText">（等待录音）</span></div>
+      <div id="questionInfo" style="display: none;">
+        <b>问题信息：</b><span id="questionInfoText"></span>
+      </div>
+      <div id="progressInfo" style="display: none;">
+        <b>进度：</b><span id="progressText"></span>
+      </div>
+    </div>
+
+    <div class="assessment-report" id="assessmentReport" style="display: none;">
+      <h3>📊 肺癌早筛评估报告</h3>
+      <div class="report-content" id="reportContent">
+        <div class="loading">正在生成评估报告...</div>
+      </div>
+      <div class="report-audio">
+        <h4>🔊 报告语音播报</h4>
+        <audio id="reportAudio" controls></audio>
+      </div>
+    </div>
+
+    <div class="conversation-history">
+      <h3>💬 对话历史</h3>
+      <div class="history-controls">
+        <button id="btnExpandHistory" class="secondary-btn">📖 展开历史</button>
+        <button id="btnCollapseHistory" class="secondary-btn" style="display: none;">📕 收起历史</button>
+      </div>
+      <div id="historyContainer" class="history-container collapsed">
+        <div id="historyList"></div>
+      </div>
+    </div>
+
+    <div class="reports-section">
+      <h3>📁 历史报告</h3>
+      <div class="reports-controls">
+        <button id="btnRefreshReports" class="secondary-btn">🔄 刷新列表</button>
+      </div>
+      <div id="reportsStats" class="reports-stats">统计加载中...</div>
+      <div id="reportsList" class="reports-list"></div>
+    </div>
+
+    <!-- [MOD] 标题修改 + [ADD] 数字人视频元素 -->
+    <div class="audio-section">
+      <h3>🖼️ AI音/视频回复</h3>
+      <!-- 数字人视频（静音播放，配合TTS音频） -->
+      <video id="digitalHumanVideo" controls playsinline muted style="display:none;max-width:100%;border-radius:8px;"></video>
+      <!-- TTS 音频（当无视频时回退播放） -->
+      <audio id="ttsAudio" controls preload="auto" style="width: 100%;"></audio>
+    </div>
+
+    <div class="debug-info">
+      <h3>🔍 调试信息</h3>
+      <div id="debugText">系统就绪，等待开始...</div>
+      <div style="margin-top: 15px;">
+        <button id="btnTestReport" class="secondary-btn" onclick="testAssessmentReport()">🧪 测试评估报告显示</button>
+        <button id="btnTestComplete" class="secondary-btn" onclick="testCompleteStatus()">🧪 测试完成状态</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="/static/script.js?v=1.1"></script>
+</body>
+</html>
