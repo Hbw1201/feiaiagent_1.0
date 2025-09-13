@@ -54,7 +54,7 @@ except Exception as _e:
         return pathlib.Path(out_dir) / "warmup.wav"
 from report_manager import report_manager
 from intelligent_questionnaire_manager import IntelligentQuestionnaireManager
-
+            
 # ===== 全局线程池和缓存管理 =====
 _global_thread_pool = None
 _app_cache = {}

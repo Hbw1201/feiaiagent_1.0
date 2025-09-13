@@ -292,7 +292,7 @@ class SmartQuestionnaireManager:
     def _is_question_available(self, question: Question, answers_dict: Dict[str, str]) -> bool:
         """检查问题是否应该被问（基于依赖条件）"""
         # 检查依赖条件
-        if "depends_on" in question.validation_rules:
+        if question.validation_rules and "depends_on" in question.validation_rules:
             depends_on = question.validation_rules["depends_on"]
             if depends_on:
                 dependent_question_id = depends_on["id"]

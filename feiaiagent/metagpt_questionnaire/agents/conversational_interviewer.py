@@ -63,22 +63,83 @@ class ConversationalInterviewerAgent(BaseAgent):
             facts['gender'] = '2'
 
         # Infer smoking status from the relevant answer
-        smoking_response = next((r.answer for r in history if r.question_id == 'smoking'), None)
+        smoking_response = next((r.answer for r in history if r.question_id == 'smoking_history'), None)
         if smoking_response:
-            if re.search(r"不吸|不抽|没吸|没抽|否", smoking_response):
-                facts['smoking'] = '2'
-            elif re.search(r"吸|抽|是", smoking_response):
-                facts['smoking'] = '1'
+            # 先检查否定回答
+            if re.search(r"不吸|不抽|没吸|没抽|否|没有|从不|不会", smoking_response):
+                facts['smoking_history'] = '2'
+            # 再检查肯定回答 - 更全面的模式匹配
+            elif re.search(r"我吸|我抽|有吸|有抽|吸.*习惯|抽.*习惯|会吸|会抽|确实|是|有", smoking_response):
+                facts['smoking_history'] = '1'
+        
+        # Infer passive smoking status
+        passive_smoking_response = next((r.answer for r in history if r.question_id == 'passive_smoking'), None)
+        if passive_smoking_response:
+            # 先检查否定回答
+            if re.search(r"不会|不吸|没吸|否|没有|从不|很少|不接触", passive_smoking_response):
+                facts['passive_smoking'] = '2'
+            # 再检查肯定回答 - 更全面的模式匹配
+            elif re.search(r"会.*吸|有.*吸|经常.*吸|接触.*烟|吸.*二手|是|有|会|经常", passive_smoking_response):
+                facts['passive_smoking'] = '1'
+        
+        # Infer kitchen fumes exposure
+        kitchen_fumes_response = next((r.answer for r in history if r.question_id == 'kitchen_fumes'), None)
+        if kitchen_fumes_response:
+            # 先检查否定回答
+            if re.search(r"不会|不接触|没接触|否|没有|从不|很少|不做饭|不炒菜", kitchen_fumes_response):
+                facts['kitchen_fumes'] = '2'
+            # 再检查肯定回答 - 更全面的模式匹配
+            elif re.search(r"会.*做饭|有.*做饭|经常.*做饭|接触.*油烟|炒菜|做饭|是|有|会|经常", kitchen_fumes_response):
+                facts['kitchen_fumes'] = '1'
+        
+        # Infer occupational exposure
+        occupation_exposure_response = next((r.answer for r in history if r.question_id == 'occupation_exposure'), None)
+        if occupation_exposure_response:
+            # 先检查否定回答
+            if re.search(r"不会|不接触|没接触|否|没有|从不|很少|不工作", occupation_exposure_response):
+                facts['occupation_exposure'] = '2'
+            # 再检查肯定回答 - 更全面的模式匹配
+            elif re.search(r"会.*接触|有.*接触|经常.*接触|工作.*接触|接触.*物质|是|有|会|经常|可能", occupation_exposure_response):
+                facts['occupation_exposure'] = '1'
         
         return facts
 
     def _get_skip_ids(self, answers: Dict[str, str]) -> Set[str]:
         """Returns a set of question IDs to skip based on known answers."""
         skip_ids = set()
-        # If user is a non-smoker, skip all smoking-related detail questions
-        if answers.get('smoking') == '2':
-            skip_ids.update(['smoking_years', 'daily_cigarettes', 'quit_years'])
-        # Add more skip logic here as needed
+        
+        # 吸烟史相关跳题逻辑
+        # 如果用户不吸烟，跳过所有吸烟史相关的详细问题
+        if answers.get('smoking_history') == '2':
+            skip_ids.update([
+                'smoking_freq',           # 吸烟频率
+                'smoking_years',          # 累计吸烟年数
+                'smoking_quit',           # 目前是否戒烟
+                'smoking_quit_years'      # 戒烟年数
+            ])
+        
+        # 被动吸烟相关跳题逻辑
+        # 如果用户不会被动吸烟，跳过所有被动吸烟相关的详细问题
+        if answers.get('passive_smoking') == '2':
+            skip_ids.update([
+                'passive_smoking_freq',   # 被动吸烟频率
+                'passive_smoking_years'   # 累计被动吸烟年数
+            ])
+        
+        # 厨房油烟相关跳题逻辑
+        # 如果用户不接触厨房油烟，跳过所有厨房油烟相关的详细问题
+        if answers.get('kitchen_fumes') == '2':
+            skip_ids.update([
+                'kitchen_fumes_years'     # 累计厨房油烟接触年数
+            ])
+        
+        # 职业致癌物质接触相关跳题逻辑
+        # 如果用户不接触职业致癌物质，跳过所有职业暴露相关的详细问题
+        if answers.get('occupation_exposure') == '2':
+            skip_ids.update([
+                'occupation_exposure_details'  # 致癌物类型及累计接触年数
+            ])
+        
         return skip_ids
 
     def _are_dependencies_met(self, question: Question, answers: Dict[str, str]) -> bool:
